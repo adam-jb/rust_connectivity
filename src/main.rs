@@ -89,6 +89,7 @@ fn main() {
     println!("Loading took {:?}", now.elapsed());
 
     let number_of_destination_categories = 5;
+    let trip_start_seconds = 3600 * 8;
 
 
     // Loop through start nodes at random
@@ -105,6 +106,8 @@ fn main() {
             &node_values,
             &travel_time_relationships,
             &subpurpose_purpose_lookup,
+            &graph_pt,
+            trip_start_seconds,
         );
 
         // store 
@@ -124,10 +127,12 @@ fn floodfill(
     node_values: &Vec<Vec<i32>>,
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &HashMap<i8,i8>,
+    graph_pt: &GraphPT, 
+    trip_start_seconds: i32,
 ) -> (i32, Vec<i32>) {
 
     let time_limit = Cost(3600);
-    let subpurposes_count = node_values[0].len() as i8;
+    let subpurposes_count = node_values[0].len() as usize;
 
     
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
@@ -137,14 +142,12 @@ fn floodfill(
     });
 
     let mut nodes_visited = HashSet::new();
+    let mut total_iters = 0;
 
-    /// 
     let mut scores: Vec<i32> = Vec::new();
-    for i in 1..6 {
+    for i in 1..(subpurposes_count+1) {
         scores.push(0);
     }
-
-    let mut total_iters = 0;
 
     while let Some(current) = queue.pop() {
         if nodes_visited.contains(&current.value) {
@@ -156,6 +159,7 @@ fn floodfill(
         
         nodes_visited.insert(current.value);
 
+        // if the node id is under 40m, then it will have an associated value
         if current.value.0 < 40_000_000 {
             // to do: node_values uses (what is probably) Expensive casting!
             // can the 'borrow' (&) be used to speed this up?
@@ -168,12 +172,12 @@ fn floodfill(
                 subpurpose_purpose_lookup,
                 subpurposes_count,
             );
-            for i in 0..5 {
+            for i in 0..subpurposes_count {
                 scores[i] += new_scores[i];
             }
         }
 
-        
+        // Finding adjacent walk nodes
         // skip 1st edge as it has info on whether node also has a PT service
         for edge in &graph_walk.edges_per_node[&(current.value.0 as usize)][1..] {
             queue.push(PriorityQueueItem {
@@ -182,12 +186,44 @@ fn floodfill(
             });
         }
 
+        // if node has a timetable associated with it
+        if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
+            get_pt_connections(
+                &graph_walk, 
+                &graph_pt,  // alter this to be a vector of vectors
+                current.cost.0,
+                &queue,
+                time_limit,
+                trip_start_seconds,
+                &current.value,
+            );
+        }
+
         total_iters += 1;
-        
     }
 
     return (total_iters, scores)
 }
+
+fn get_pt_connections(
+    graph_walk: &GraphWalk, 
+    graph_pt: &GraphPT,
+    time_so_far: u16,
+    queue: &BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
+    time_limit: Cost,
+    trip_start_seconds: i32,
+    current_node: &NodeID,
+) {
+   
+    // find time node is arrived at in seconds past midnight
+    let time_of_arrival_current_node = trip_start_seconds + time_so_far as i32;
+
+    // to do: extract bus_array from said bus
+    //let next_leaving_times = bus_array[1:,0];
+
+    // rest of algo to come!
+}
+
 
 
 fn get_scores(
@@ -195,18 +231,15 @@ fn get_scores(
     time_so_far: u16,   // can be: psych_time_so_far or time_so_far # PSYCH!
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &HashMap<i8,i8>,
-    subpurposes_count: i8,
+    subpurposes_count: usize,
 ) -> Vec<i32> {
-    let mut new_scores: Vec<i32> = Vec::new();
-    for i in 1..6 {
-        new_scores.push(0);
-    }
 
-    // check loop goes up to 'subpurposes_counts' of if should be 1..(subpurposes_counts+1)
-    for i in 1..subpurposes_count {   
-        let location_value = values_this_node[i as usize];
-        let ix_purpose = subpurpose_purpose_lookup[&i];
-        new_scores[ix_purpose as usize] += location_value * travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+    let mut new_scores: Vec<i32> = Vec::new();
+
+    for i in 0..subpurposes_count {   
+        let location_value = values_this_node[i];
+        let ix_purpose = subpurpose_purpose_lookup[&(i as i8)];
+        new_scores.push(location_value * travel_time_relationships[ix_purpose as usize][time_so_far as usize]);
     }
     
     new_scores
