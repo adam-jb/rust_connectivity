@@ -217,12 +217,37 @@ fn get_pt_connections(
 ) {
    
     // find time node is arrived at in seconds past midnight
-    let time_of_arrival_current_node = trip_start_seconds + time_so_far as i32;
+    let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 
-    // to do: extract bus_array from said bus
-    //let next_leaving_times = bus_array[1:,0];
+    // find time next service leaves
+    let mut found_next_service = 0;
+    let mut journey_time: u32 = 0;
+    let mut next_leaving_time = 0; 
+    for edge in &graph_pt.edges_per_node[&(current_node.0 as usize)][1..] {
 
-    // rest of algo to come!
+        if time_of_arrival_current_node  <= edge.leavingTime.0 as u32 {
+            next_leaving_time = edge.leavingTime.0;
+            journey_time = edge.cost.0 as u32;
+            found_next_service = 1;
+            break;
+        }
+    }
+
+    if found_next_service == 1 {
+
+        let wait_time_this_stop = next_leaving_time - time_of_arrival_current_node;
+        let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].cost.0;
+        let arrival_time_next_stop = time_of_arrival_current_node + wait_time_this_stop + journey_time;
+        
+        if arrival_time_next_stop < time_limit.0 as u32 {
+
+            //// to do: add destination node to queue: can we write to it inplace?
+            
+            
+
+        }
+    }
+
 }
 
 
