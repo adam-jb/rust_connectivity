@@ -8,7 +8,8 @@ def get_and_save_file(filename):
         w.write(txt)
     print(f'saved {filename}')
 
-        
+
+
 files_to_get = [
     'start_nodes.json',
     'init_travel_times.json',
@@ -22,4 +23,6 @@ files_to_get = [
 
 for filename in files_to_get:
     get_and_save_file(filename)
-    
+
+
+

@@ -41,6 +41,9 @@ impl fmt::Display for Cost {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+struct LeavingTime(u32);
+
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct EdgeWalk {
     to: NodeID,
@@ -54,7 +57,7 @@ struct GraphWalk {
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct EdgePT {
-    to: NodeID,
+    leavingTime : LeavingTime,
     cost: Cost,
 }
 
@@ -65,22 +68,112 @@ struct GraphPT {
 
 
 fn main() {
-    serialise_list("start_nodes");
-    serialise_list("init_travel_times");
-    serialise_GraphWalk();
+    //serialise_list("start_nodes");
+    //serialise_list("init_travel_times");
+    //serialise_GraphWalk();
+    //serialise_GraphPT();
+    //serialise_list_of_lists("node_values");
+    //serialise_list_of_lists("travel_time_relationships");
+    //serialise_hashmap_i8("subpurpose_purpose_lookup");
 
+    let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
     let graph_walk = read_GraphWalk();
+    let graph_pt = read_GraphPT();
+    let node_values = read_list_of_lists_vect32("node_values");
+    let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
+    let subpurpose_purpose_lookup = read_hashmap_i8("subpurpose_purpose_lookup"); 
+    println!("Loading took {:?}", now.elapsed());
+
+    let number_of_destination_categories = 5;
 
     println!("graph_walk len: {}", graph_walk.edges_per_node.keys().count());
+    println!("graph_pt len: {}", graph_pt.edges_per_node.keys().count());
     println!("start nodes len: {}", start_nodes.len());
     println!("init_travel_times len: {}", init_travel_times.len());
 
-    serialise_GraphWalk();
-
-    
 }
+
+
+
+
+
+fn serialise_hashmap_i8(filename: &str) {
+
+    let inpath = format!("data/{}.json", filename);
+    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let output: HashMap<i8,i8> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
+fn read_hashmap_i8(filename: &str) -> HashMap<i8, i8> {
+    let inpath = format!("serialised_data/{}.bin", filename);
+    let file = BufReader::new(File::open(inpath).unwrap());
+    let output: HashMap<i8, i8> = bincode::deserialize_from(file).unwrap();
+    output
+}
+
+
+
+
+fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>>{
+    let inpath = format!("serialised_data/{}.bin", filename);
+    let file = BufReader::new(File::open(inpath).unwrap());
+    let output: Vec<Vec<i32>> = bincode::deserialize_from(file).unwrap();
+    output
+}
+
+
+fn serialise_list_of_lists(filename: &str) {
+
+    let inpath = format!("data/{}.json", filename);
+    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let output: Vec<Vec<i32>> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
+
+
+
+fn serialise_GraphPT() {
+
+    let contents = std::fs::read_to_string("data/p2_main_nodes.json").unwrap();
+
+    // to do: check meaning of the '2' in [usize; 2]
+    let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
+
+    // make empty dict
+    let mut graph = GraphPT {
+        edges_per_node: HashMap::new(),
+    };
+
+    // populate dict
+    for (from, input_edges) in input {
+        let mut edges = SmallVec::new();
+        for array in input_edges {
+            edges.push(EdgePT {
+                leavingTime: LeavingTime(array[1] as u32),
+                cost: Cost(array[0] as u16),
+            });
+        }
+        graph.edges_per_node.insert(from, edges);
+    }
+
+    let file = BufWriter::new(File::create("serialised_data/p2_main_nodes.bin").unwrap());
+    bincode::serialize_into(file, &graph).unwrap();
+}
+
 
 
 fn read_GraphWalk() -> GraphWalk {
@@ -89,27 +182,24 @@ fn read_GraphWalk() -> GraphWalk {
     output
 }
 
-
-fn serialise_GraphPT() {
-    
+fn read_GraphPT() -> GraphPT {
+    let file = BufReader::new(File::open("serialised_data/p2_main_nodes.bin").unwrap());
+    let output: GraphPT = bincode::deserialize_from(file).unwrap();
+    output
 }
-
 
 
 fn serialise_GraphWalk() {
 
     let contents = std::fs::read_to_string("data/p1_main_nodes.json").unwrap();
 
-    // check meaning of the '2' in [usize; 2]
+    // to do: check meaning of the '2' in [usize; 2]
     let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
 
     // make empty dict
     let mut graph = GraphWalk {
         edges_per_node: HashMap::new(),
     };
-    //for i in 0..dict_len {
-    //    graph.edges_per_node.insert(i, SmallVec::new());
-    //}
 
     // populate dict
     for (from, input_edges) in input {
@@ -120,17 +210,11 @@ fn serialise_GraphWalk() {
                 cost: Cost(array[0] as u16),
             });
         }
-
-        //let from: usize = from.parse().unwrap();
-        //graph.edges_per_node[&from] = edges;
         graph.edges_per_node.insert(from, edges);
     }
 
     let file = BufWriter::new(File::create("serialised_data/p1_main_nodes.bin").unwrap());
     bincode::serialize_into(file, &graph).unwrap();
-
-    //let dict_len = input.keys().count();
-    //println!("serialised p1_main_nodes with len: {}", dict_len);
 }
 
 
