@@ -99,16 +99,19 @@ fn main() {
     // Loop through start nodes at random
     let mut rng = WyRand::new();
     let now = Instant::now();
+    let mut score_store = Vec::new();
     let mut total_iters_counter = 0;
     for _ in 0..100 {
-        //let start = NodeID(rng.generate_range(0..graph_walk.edges_per_node.len() as u32));
         let start_ix = rng.generate_range(0..start_nodes.len());
         let start = NodeID((start_nodes[start_ix] as u32));
         let (total_iters, scores) = floodfill(&graph_walk, start);
+
+        // store 
         total_iters_counter += total_iters;
+        score_store.push(scores);
     }
     println!("Calculating routes took {:?}\nReached {} nodes in total", now.elapsed(), total_iters_counter);
-    println!("Score from last start node {:?}", scores):
+    println!("Score from last start node {:?}", score_store.pop());
 }
 
 
