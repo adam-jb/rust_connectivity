@@ -97,8 +97,8 @@ fn main() {
     let now = Instant::now();
     let mut score_store = Vec::new();
     let mut total_iters_counter = 0;
-    for _ in 0..100 {
-        let start_ix = rng.generate_range(0..start_nodes.len());
+    for start_ix in 0..100 {
+        //let start_ix = rng.generate_range(0..start_nodes.len());
         let start = NodeID((start_nodes[start_ix] as u32));
         let (total_iters, scores) = floodfill(
             &graph_walk, 
@@ -189,7 +189,7 @@ fn floodfill(
         // if node has a timetable associated with it: the first value in the first 'edge'
         // will be 1 if it does, and 0 if it doesn't
         if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
-            get_pt_connections(
+            let pt_connection = get_pt_connections(
                 &graph_walk, 
                 &graph_pt,  // alter this to be a vector of vectors
                 current.cost.0,
@@ -198,6 +198,16 @@ fn floodfill(
                 trip_start_seconds,
                 &current.value,
             );
+
+            /// as get_pt_connections() doesn't push to queue inside the function, do it here (ideally change this to save cycles)
+            if pt_connection.0.0 > 0 {
+                
+                queue.push(PriorityQueueItem {
+                    cost: pt_connection.0,
+                    value: pt_connection.1,
+                });
+                
+            }
         }
 
         total_iters += 1;
@@ -214,7 +224,7 @@ fn get_pt_connections(
     time_limit: Cost,
     trip_start_seconds: i32,
     current_node: &NodeID,
-) {
+) -> (Cost, NodeID) {
    
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
@@ -233,28 +243,33 @@ fn get_pt_connections(
         }
     }
 
+
+    // export 
+    let mut output = (Cost(0 as u16), NodeID(0 as u32));
     if found_next_service == 1 {
 
         let wait_time_this_stop = next_leaving_time - time_of_arrival_current_node;
-        let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].cost.0;
-        let arrival_time_next_stop = time_of_arrival_current_node + wait_time_this_stop + journey_time;
+        let arrival_time_next_stop = time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
         
         if arrival_time_next_stop < time_limit.0 as u32 {
 
-            //// to do: add destination node to queue: can we write to it inplace?
+            //// prep output for queue. Notice this uses 'cost' as first 'edge' for each node stores ID
+            //// of next node: this is legacy from our matrix-based approach in python
+            //// Todo: would be better to write to queue inplace to save shunting data around as much
+            let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].cost.0;
             
-            
-
-        }
+            output = (Cost(arrival_time_next_stop as u16), NodeID(*destination_node as u32));
+        };
     }
 
+    return output;
 }
 
 
 
 fn get_scores(
     values_this_node: &Vec<i32>, 
-    time_so_far: u16,   // can be: psych_time_so_far or time_so_far # PSYCH!
+    time_so_far: u16,
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &HashMap<i8,i8>,
     subpurposes_count: usize,
