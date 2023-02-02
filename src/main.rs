@@ -133,6 +133,7 @@ fn floodfill(
 
     let time_limit = Cost(3600);
     let subpurposes_count = node_values[0].len() as usize;
+    let now = Instant::now();
 
     
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
@@ -143,6 +144,7 @@ fn floodfill(
 
     let mut nodes_visited = HashSet::new();
     let mut total_iters = 0;
+    let mut pt_iters = 0;
 
     let mut scores: Vec<i32> = Vec::new();
     for i in 1..(subpurposes_count+1) {
@@ -206,12 +208,15 @@ fn floodfill(
                     cost: pt_connection.0,
                     value: pt_connection.1,
                 });
+
+                pt_iters += 1;
                 
             }
         }
 
         total_iters += 1;
     }
+    println!("pt_iters: {}/ttotal_iters: {}/tSeconds: {}", pt_iters, total_iters, now.elapsed());
 
     return (total_iters, scores)
 }
@@ -225,9 +230,12 @@ fn get_pt_connections(
     trip_start_seconds: i32,
     current_node: &NodeID,
 ) -> (Cost, NodeID) {
+
    
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
+
+
 
     // find time next service leaves
     let mut found_next_service = 0;
@@ -235,10 +243,16 @@ fn get_pt_connections(
     let mut next_leaving_time = 0; 
     for edge in &graph_pt.edges_per_node[&(current_node.0 as usize)][1..] {
 
-        if time_of_arrival_current_node  <= edge.leavingTime.0 as u32 {
-            next_leaving_time = edge.leavingTime.0;
-            journey_time = edge.cost.0 as u32;
+        //println!(" edge.leavingTime.0 {}",  edge.cost.0);
+
+        if time_of_arrival_current_node  <= edge.cost.0 as u32 {
+            
+            next_leaving_time = edge.cost.0;
+            journey_time = edge.leavingTime.0 as u32;
             found_next_service = 1;
+
+            //println!("next_leaving_time {}", next_leaving_time);
+
             break;
         }
     }
@@ -248,7 +262,7 @@ fn get_pt_connections(
     let mut output = (Cost(0 as u16), NodeID(0 as u32));
     if found_next_service == 1 {
 
-        let wait_time_this_stop = next_leaving_time - time_of_arrival_current_node;
+        let wait_time_this_stop = next_leaving_time as u32 - time_of_arrival_current_node;
         let arrival_time_next_stop = time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
         
         if arrival_time_next_stop < time_limit.0 as u32 {
@@ -257,6 +271,7 @@ fn get_pt_connections(
             //// of next node: this is legacy from our matrix-based approach in python
             //// Todo: would be better to write to queue inplace to save shunting data around as much
             let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].cost.0;
+            //println!("destination_node {}", destination_node);
             
             output = (Cost(arrival_time_next_stop as u16), NodeID(*destination_node as u32));
         };
