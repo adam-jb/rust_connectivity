@@ -156,9 +156,18 @@ fn floodfill(graph_walk: &GraphWalk, start: NodeID) -> (i32, Vec<i64>) {
     return (total_iters, scores)
 }
 
-fn add_scores() {
+
+
+fn add_scores(
+    scores: Vec<i32>,
+    values_this_node: Vec<i32>, 
+    travel_time_relationships: Vec<Vec<i32>>, 
+    subpurpose_purpose_lookup: HashMap<i8,i8>
+) {
+
 
 }
+
 
 
 
