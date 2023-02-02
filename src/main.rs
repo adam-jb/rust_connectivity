@@ -90,11 +90,6 @@ fn main() {
 
     let number_of_destination_categories = 5;
 
-    println!("graph_walk len: {}", graph_walk.edges_per_node.keys().count());
-    println!("graph_pt len: {}", graph_pt.edges_per_node.keys().count());
-    println!("start nodes len: {}", start_nodes.len());
-    println!("init_travel_times len: {}", init_travel_times.len());
-
 
     // Loop through start nodes at random
     let mut rng = WyRand::new();
@@ -104,7 +99,13 @@ fn main() {
     for _ in 0..100 {
         let start_ix = rng.generate_range(0..start_nodes.len());
         let start = NodeID((start_nodes[start_ix] as u32));
-        let (total_iters, scores) = floodfill(&graph_walk, start);
+        let (total_iters, scores) = floodfill(
+            &graph_walk, 
+            start, 
+            &node_values,
+            &travel_time_relationships,
+            &subpurpose_purpose_lookup,
+        );
 
         // store 
         total_iters_counter += total_iters;
@@ -117,10 +118,18 @@ fn main() {
 
 
 
-fn floodfill(graph_walk: &GraphWalk, start: NodeID) -> (i32, Vec<i64>) {
+fn floodfill(
+    graph_walk: &GraphWalk, 
+    start: NodeID, 
+    node_values: &Vec<Vec<i32>>,
+    travel_time_relationships: &Vec<Vec<i32>>,
+    subpurpose_purpose_lookup: &HashMap<i8,i8>,
+) -> (i32, Vec<i32>) {
 
     let time_limit = Cost(3600);
+    let subpurposes_count = node_values[0].len() as i8;
 
+    
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: Cost(0),
@@ -128,7 +137,13 @@ fn floodfill(graph_walk: &GraphWalk, start: NodeID) -> (i32, Vec<i64>) {
     });
 
     let mut nodes_visited = HashSet::new();
-    let mut scores = vec![0,0,0,0,0];
+
+    /// 
+    let mut scores: Vec<i32> = Vec::new();
+    for i in 1..6 {
+        scores.push(0);
+    }
+
     let mut total_iters = 0;
 
     while let Some(current) = queue.pop() {
@@ -138,8 +153,26 @@ fn floodfill(graph_walk: &GraphWalk, start: NodeID) -> (i32, Vec<i64>) {
         if current.cost > time_limit {
             continue;
         }
-
+        
         nodes_visited.insert(current.value);
+
+        if current.value.0 < 40_000_000 {
+            // to do: node_values uses (what is probably) Expensive casting!
+            // can the 'borrow' (&) be used to speed this up?
+            // Can we change 'scores' inplace within the function to speed this up, perhaps
+            // by making making 'scores' global (as we do in python)
+            let new_scores = get_scores(
+                &node_values[(current.value.0 as usize)], 
+                current.cost.0, 
+                travel_time_relationships, 
+                subpurpose_purpose_lookup,
+                subpurposes_count,
+            );
+            for i in 0..5 {
+                scores[i] += new_scores[i];
+            }
+        }
+
         
         // skip 1st edge as it has info on whether node also has a PT service
         for edge in &graph_walk.edges_per_node[&(current.value.0 as usize)][1..] {
@@ -157,15 +190,26 @@ fn floodfill(graph_walk: &GraphWalk, start: NodeID) -> (i32, Vec<i64>) {
 }
 
 
+fn get_scores(
+    values_this_node: &Vec<i32>, 
+    time_so_far: u16,   // can be: psych_time_so_far or time_so_far # PSYCH!
+    travel_time_relationships: &Vec<Vec<i32>>,
+    subpurpose_purpose_lookup: &HashMap<i8,i8>,
+    subpurposes_count: i8,
+) -> Vec<i32> {
+    let mut new_scores: Vec<i32> = Vec::new();
+    for i in 1..6 {
+        new_scores.push(0);
+    }
 
-fn add_scores(
-    scores: Vec<i32>,
-    values_this_node: Vec<i32>, 
-    travel_time_relationships: Vec<Vec<i32>>, 
-    subpurpose_purpose_lookup: HashMap<i8,i8>
-) {
-
-
+    // check loop goes up to 'subpurposes_counts' of if should be 1..(subpurposes_counts+1)
+    for i in 1..subpurposes_count {   
+        let location_value = values_this_node[i as usize];
+        let ix_purpose = subpurpose_purpose_lookup[&i];
+        new_scores[ix_purpose as usize] += location_value * travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+    }
+    
+    new_scores
 }
 
 
