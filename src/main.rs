@@ -202,8 +202,9 @@ fn floodfill(
             );
 
             /// as get_pt_connections() doesn't push to queue inside the function, do it here (ideally change this to save cycles)
+            // pt_connection.0.0 is seconds since start of simulation
             if pt_connection.0.0 > 0 {
-                
+
                 queue.push(PriorityQueueItem {
                     cost: pt_connection.0,
                     value: pt_connection.1,
@@ -216,8 +217,7 @@ fn floodfill(
 
         total_iters += 1;
     }
-    println!("pt_iters: {}/ttotal_iters: {}\t{:?}", pt_iters, total_iters, now.elapsed());
-    //println!("Loading took {:?}", now.elapsed());
+    println!("pt_iters: {}\ttotal_iters: {}\t{:?}", pt_iters, total_iters, now.elapsed());
 
     return (total_iters, scores)
 }
@@ -237,23 +237,17 @@ fn get_pt_connections(
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 
 
-
     // find time next service leaves
     let mut found_next_service = 0;
     let mut journey_time: u32 = 0;
     let mut next_leaving_time = 0; 
     for edge in &graph_pt.edges_per_node[&(current_node.0 as usize)][1..] {
 
-        //println!(" edge.leavingTime.0 {}",  edge.cost.0);
-
         if time_of_arrival_current_node  <= edge.cost.0 as u32 {
             
             next_leaving_time = edge.cost.0;
             journey_time = edge.leavingTime.0 as u32;
             found_next_service = 1;
-
-            //println!("next_leaving_time {}", next_leaving_time);
-
             break;
         }
     }
@@ -268,10 +262,10 @@ fn get_pt_connections(
         
         if arrival_time_next_stop < time_limit.0 as u32 {
 
-            //// prep output for queue. Notice this uses 'cost' as first 'edge' for each node stores ID
+            //// prep output for queue. Notice this uses 'leavingTime' as first 'edge' for each node stores ID
             //// of next node: this is legacy from our matrix-based approach in python
             //// Todo: would be better to write to queue inplace to save shunting data around as much
-            let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].cost.0;
+            let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].leavingTime.0;
             //println!("destination_node {}", destination_node);
             
             output = (Cost(arrival_time_next_stop as u16), NodeID(*destination_node as u32));
