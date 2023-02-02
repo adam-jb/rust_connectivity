@@ -186,7 +186,8 @@ fn floodfill(
             });
         }
 
-        // if node has a timetable associated with it
+        // if node has a timetable associated with it: the first value in the first 'edge'
+        // will be 1 if it does, and 0 if it doesn't
         if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
             get_pt_connections(
                 &graph_walk, 
