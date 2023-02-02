@@ -1,13 +1,13 @@
-use std::time::Instant;
-use rand::{thread_rng, seq::SliceRandom};
-use smallvec::SmallVec;
+use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
+use std::time::Instant;
 
+use nanorand::{Rng, WyRand};
 use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
-use nanorand::{Rng, WyRand};
-use std::fmt;
 
 use google_cloud_storage::client::Client;
 use google_cloud_storage::http::objects::download::Range;
@@ -20,7 +20,6 @@ use google_cloud_storage::sign::SignedURLOptions;
 use self::priority_queue::PriorityQueueItem;
 
 mod priority_queue;
-
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 struct NodeID(u32);
@@ -55,11 +54,9 @@ struct GraphWalk {
     edges_per_node: HashMap<usize, SmallVec<[EdgeWalk; 4]>>,
 }
 
-
-
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct EdgePT {
-    leavingTime : LeavingTime,
+    leavingTime: LeavingTime,
     cost: Cost,
 }
 
@@ -67,7 +64,6 @@ struct EdgePT {
 struct GraphPT {
     edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
 }
-
 
 fn main() {
     //serialise_list("start_nodes");
@@ -85,12 +81,11 @@ fn main() {
     let graph_pt = read_GraphPT();
     let node_values = read_list_of_lists_vect32("node_values");
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
-    let subpurpose_purpose_lookup = read_hashmap_i8("subpurpose_purpose_lookup"); 
+    let subpurpose_purpose_lookup = read_hashmap_i8("subpurpose_purpose_lookup");
     println!("Loading took {:?}", now.elapsed());
 
     let number_of_destination_categories = 5;
     let trip_start_seconds = 3600 * 8;
-
 
     // Loop through start nodes at random
     let mut rng = WyRand::new();
@@ -101,8 +96,8 @@ fn main() {
         //let start_ix = rng.generate_range(0..start_nodes.len());
         let start = NodeID((start_nodes[start_ix] as u32));
         let (total_iters, scores) = floodfill(
-            &graph_walk, 
-            start, 
+            &graph_walk,
+            start,
             &node_values,
             &travel_time_relationships,
             &subpurpose_purpose_lookup,
@@ -110,32 +105,31 @@ fn main() {
             trip_start_seconds,
         );
 
-        // store 
+        // store
         total_iters_counter += total_iters;
         score_store.push(scores);
     }
-    println!("Calculating routes took {:?}\nReached {} nodes in total", now.elapsed(), total_iters_counter);
+    println!(
+        "Calculating routes took {:?}\nReached {} nodes in total",
+        now.elapsed(),
+        total_iters_counter
+    );
     println!("Score from last start node {:?}", score_store.pop());
 }
 
-
-
-
 fn floodfill(
-    graph_walk: &GraphWalk, 
-    start: NodeID, 
+    graph_walk: &GraphWalk,
+    start: NodeID,
     node_values: &Vec<Vec<i32>>,
     travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &HashMap<i8,i8>,
-    graph_pt: &GraphPT, 
+    subpurpose_purpose_lookup: &HashMap<i8, i8>,
+    graph_pt: &GraphPT,
     trip_start_seconds: i32,
 ) -> (i32, Vec<i32>) {
-
     let time_limit = Cost(3600);
     let subpurposes_count = node_values[0].len() as usize;
     let now = Instant::now();
 
-    
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
         cost: Cost(0),
@@ -147,7 +141,7 @@ fn floodfill(
     let mut pt_iters = 0;
 
     let mut scores: Vec<i32> = Vec::new();
-    for i in 1..(subpurposes_count+1) {
+    for i in 1..(subpurposes_count + 1) {
         scores.push(0);
     }
 
@@ -158,7 +152,7 @@ fn floodfill(
         if current.cost > time_limit {
             continue;
         }
-        
+
         nodes_visited.insert(current.value);
 
         // if the node id is under 40m, then it will have an associated value
@@ -168,9 +162,9 @@ fn floodfill(
             // Can we change 'scores' inplace within the function to speed this up, perhaps
             // by making making 'scores' global (as we do in python)
             let new_scores = get_scores(
-                &node_values[(current.value.0 as usize)], 
-                current.cost.0, 
-                travel_time_relationships, 
+                &node_values[(current.value.0 as usize)],
+                current.cost.0,
+                travel_time_relationships,
                 subpurpose_purpose_lookup,
                 subpurposes_count,
             );
@@ -192,8 +186,8 @@ fn floodfill(
         // will be 1 if it does, and 0 if it doesn't
         if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
             let pt_connection = get_pt_connections(
-                &graph_walk, 
-                &graph_pt,  // alter this to be a vector of vectors
+                &graph_walk,
+                &graph_pt, // alter this to be a vector of vectors
                 current.cost.0,
                 &queue,
                 time_limit,
@@ -203,27 +197,30 @@ fn floodfill(
 
             /// as get_pt_connections() doesn't push to queue inside the function, do it here (ideally change this to save cycles)
             // pt_connection.0.0 is seconds since start of simulation
-            if pt_connection.0.0 > 0 {
-
+            if pt_connection.0 .0 > 0 {
                 queue.push(PriorityQueueItem {
                     cost: pt_connection.0,
                     value: pt_connection.1,
                 });
 
                 pt_iters += 1;
-                
             }
         }
 
         total_iters += 1;
     }
-    println!("pt_iters: {}\ttotal_iters: {}\t{:?}", pt_iters, total_iters, now.elapsed());
+    println!(
+        "pt_iters: {}\ttotal_iters: {}\t{:?}",
+        pt_iters,
+        total_iters,
+        now.elapsed()
+    );
 
-    return (total_iters, scores)
+    return (total_iters, scores);
 }
 
 fn get_pt_connections(
-    graph_walk: &GraphWalk, 
+    graph_walk: &GraphWalk,
     graph_pt: &GraphPT,
     time_so_far: u16,
     queue: &BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
@@ -231,20 +228,15 @@ fn get_pt_connections(
     trip_start_seconds: i32,
     current_node: &NodeID,
 ) -> (Cost, NodeID) {
-
-   
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
-
 
     // find time next service leaves
     let mut found_next_service = 0;
     let mut journey_time: u32 = 0;
-    let mut next_leaving_time = 0; 
+    let mut next_leaving_time = 0;
     for edge in &graph_pt.edges_per_node[&(current_node.0 as usize)][1..] {
-
-        if time_of_arrival_current_node  <= edge.cost.0 as u32 {
-            
+        if time_of_arrival_current_node <= edge.cost.0 as u32 {
             next_leaving_time = edge.cost.0;
             journey_time = edge.leavingTime.0 as u32;
             found_next_service = 1;
@@ -252,61 +244,56 @@ fn get_pt_connections(
         }
     }
 
-
-    // export 
+    // export
     let mut output = (Cost(0 as u16), NodeID(0 as u32));
     if found_next_service == 1 {
-
         let wait_time_this_stop = next_leaving_time as u32 - time_of_arrival_current_node;
-        let arrival_time_next_stop = time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
-        
-        if arrival_time_next_stop < time_limit.0 as u32 {
+        let arrival_time_next_stop =
+            time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
 
+        if arrival_time_next_stop < time_limit.0 as u32 {
             //// prep output for queue. Notice this uses 'leavingTime' as first 'edge' for each node stores ID
             //// of next node: this is legacy from our matrix-based approach in python
             //// Todo: would be better to write to queue inplace to save shunting data around as much
-            let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0].leavingTime.0;
+            let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0]
+                .leavingTime
+                .0;
             //println!("destination_node {}", destination_node);
-            
-            output = (Cost(arrival_time_next_stop as u16), NodeID(*destination_node as u32));
+
+            output = (
+                Cost(arrival_time_next_stop as u16),
+                NodeID(*destination_node as u32),
+            );
         };
     }
 
     return output;
 }
 
-
-
 fn get_scores(
-    values_this_node: &Vec<i32>, 
+    values_this_node: &Vec<i32>,
     time_so_far: u16,
     travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &HashMap<i8,i8>,
+    subpurpose_purpose_lookup: &HashMap<i8, i8>,
     subpurposes_count: usize,
 ) -> Vec<i32> {
-
     let mut new_scores: Vec<i32> = Vec::new();
 
-    for i in 0..subpurposes_count {   
+    for i in 0..subpurposes_count {
         let location_value = values_this_node[i];
         let ix_purpose = subpurpose_purpose_lookup[&(i as i8)];
-        new_scores.push(location_value * travel_time_relationships[ix_purpose as usize][time_so_far as usize]);
+        new_scores.push(
+            location_value * travel_time_relationships[ix_purpose as usize][time_so_far as usize],
+        );
     }
-    
+
     new_scores
 }
 
-
-
-
-
-
-
 fn serialise_hashmap_i8(filename: &str) {
-
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
-    let output: HashMap<i8,i8> = serde_json::from_str(&contents).unwrap();
+    let output: HashMap<i8, i8> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
     let outpath = format!("serialised_data/{}.bin", filename);
@@ -322,19 +309,14 @@ fn read_hashmap_i8(filename: &str) -> HashMap<i8, i8> {
     output
 }
 
-
-
-
-fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>>{
+fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
     let inpath = format!("serialised_data/{}.bin", filename);
     let file = BufReader::new(File::open(inpath).unwrap());
     let output: Vec<Vec<i32>> = bincode::deserialize_from(file).unwrap();
     output
 }
 
-
 fn serialise_list_of_lists(filename: &str) {
-
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
     let output: Vec<Vec<i32>> = serde_json::from_str(&contents).unwrap();
@@ -346,11 +328,7 @@ fn serialise_list_of_lists(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
-
-
-
 fn serialise_GraphPT() {
-
     let contents = std::fs::read_to_string("data/p2_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
@@ -377,8 +355,6 @@ fn serialise_GraphPT() {
     bincode::serialize_into(file, &graph).unwrap();
 }
 
-
-
 fn read_GraphWalk() -> GraphWalk {
     let file = BufReader::new(File::open("serialised_data/p1_main_nodes.bin").unwrap());
     let output: GraphWalk = bincode::deserialize_from(file).unwrap();
@@ -391,9 +367,7 @@ fn read_GraphPT() -> GraphPT {
     output
 }
 
-
 fn serialise_GraphWalk() {
-
     let contents = std::fs::read_to_string("data/p1_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
@@ -420,10 +394,7 @@ fn serialise_GraphWalk() {
     bincode::serialize_into(file, &graph).unwrap();
 }
 
-
-
 fn serialise_list(filename: &str) {
-
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
     let output: Vec<i32> = serde_json::from_str(&contents).unwrap();
@@ -435,13 +406,12 @@ fn serialise_list(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
-fn read_serialised_vect32(filename: &str) -> Vec<i32>{
+fn read_serialised_vect32(filename: &str) -> Vec<i32> {
     let inpath = format!("serialised_data/{}.bin", filename);
     let file = BufReader::new(File::open(inpath).unwrap());
     let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
     output
 }
-
 
 fn print_type_of<T>(_: &T) {
     println!("{}", std::any::type_name::<T>())
