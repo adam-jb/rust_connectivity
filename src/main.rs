@@ -60,13 +60,22 @@ struct GraphPT {
 
 
 fn main() {
+    serialise_list("start_nodes");
+    serialise_list("init_travel_times");
+
+    let start_nodes = read_serialised_vect32("start_nodes");
+    let init_travel_times = read_serialised_vect32("init_travel_times");
+
+
+
+    println!("start nodes len: {}", start_nodes.len());
+    println!("init_travel_times len: {}", init_travel_times.len());
+
     println!("Hello, world!");
     
 }
 
-fn serialise_input_files() {
 
-}
 
 
 fn json_to_GraphWalk() {
@@ -77,13 +86,30 @@ fn json_to_GraphPT() {
     
 }
 
-fn read_serialised_files() {
-    
+
+fn serialise_list(filename: &str) {
+
+    let inpath = format!("data/{}.json", filename);
+    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let output: Vec<i32> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
+fn read_serialised_vect32(filename: &str) -> Vec<i32>{
+    let inpath = format!("serialised_data/{}.bin", filename);
+    let file = BufReader::new(File::open(inpath).unwrap());
+    let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
+    output
 }
 
 
 
-fn floodfill(graph: &Graph, start: NodeID) -> HashMap<NodeID, Cost> {
+fn floodfill(graph: &GraphWalk, start: NodeID) -> HashMap<NodeID, Cost> {
 
     let time_limit = Cost(3600);
 
