@@ -216,7 +216,8 @@ fn floodfill(
 
         total_iters += 1;
     }
-    println!("pt_iters: {}/ttotal_iters: {}/tSeconds: {}", pt_iters, total_iters, now.elapsed());
+    println!("pt_iters: {}/ttotal_iters: {}\t{:?}", pt_iters, total_iters, now.elapsed());
+    //println!("Loading took {:?}", now.elapsed());
 
     return (total_iters, scores)
 }
