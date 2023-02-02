@@ -3,7 +3,7 @@ use rand::{thread_rng, seq::SliceRandom};
 use smallvec::SmallVec;
 use serde::{Deserialize, Serialize};
 
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use nanorand::{Rng, WyRand};
@@ -55,6 +55,8 @@ struct GraphWalk {
     edges_per_node: HashMap<usize, SmallVec<[EdgeWalk; 4]>>,
 }
 
+
+
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct EdgePT {
     leavingTime : LeavingTime,
@@ -93,7 +95,68 @@ fn main() {
     println!("start nodes len: {}", start_nodes.len());
     println!("init_travel_times len: {}", init_travel_times.len());
 
+
+    // Loop through start nodes at random
+    let mut rng = WyRand::new();
+    let now = Instant::now();
+    let mut total_iters_counter = 0;
+    for _ in 0..100 {
+        //let start = NodeID(rng.generate_range(0..graph_walk.edges_per_node.len() as u32));
+        let start_ix = rng.generate_range(0..start_nodes.len());
+        let start = NodeID((start_nodes[start_ix] as u32));
+        let (total_iters, scores) = floodfill(&graph_walk, start);
+        total_iters_counter += total_iters;
+    }
+    println!("Calculating routes took {:?}\nReached {} nodes in total", now.elapsed(), total_iters_counter);
+    println!("Score from last start node {:?}", scores):
 }
+
+
+
+
+fn floodfill(graph_walk: &GraphWalk, start: NodeID) -> (i32, Vec<i64>) {
+
+    let time_limit = Cost(3600);
+
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
+    queue.push(PriorityQueueItem {
+        cost: Cost(0),
+        value: start,
+    });
+
+    let mut nodes_visited = HashSet::new();
+    let mut scores = vec![0,0,0,0,0];
+    let mut total_iters = 0;
+
+    while let Some(current) = queue.pop() {
+        if nodes_visited.contains(&current.value) {
+            continue;
+        }
+        if current.cost > time_limit {
+            continue;
+        }
+
+        nodes_visited.insert(current.value);
+        
+        // skip 1st edge as it has info on whether node also has a PT service
+        for edge in &graph_walk.edges_per_node[&(current.value.0 as usize)][1..] {
+            queue.push(PriorityQueueItem {
+                cost: Cost(current.cost.0 + edge.cost.0),
+                value: edge.to,
+            });
+        }
+
+        total_iters += 1;
+        
+    }
+
+    return (total_iters, scores)
+}
+
+fn add_scores() {
+
+}
+
 
 
 
@@ -237,41 +300,6 @@ fn read_serialised_vect32(filename: &str) -> Vec<i32>{
     let file = BufReader::new(File::open(inpath).unwrap());
     let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
     output
-}
-
-
-
-fn floodfill(graph: &GraphWalk, start: NodeID) -> HashMap<NodeID, Cost> {
-
-    let time_limit = Cost(3600);
-
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
-    queue.push(PriorityQueueItem {
-        cost: Cost(0),
-        value: start,
-    });
-
-    let mut cost_per_node = HashMap::new();
-
-    while let Some(current) = queue.pop() {
-        if cost_per_node.contains_key(&current.value) {
-            continue;
-        }
-        if current.cost > time_limit {
-            continue;
-        }
-        cost_per_node.insert(current.value, current.cost);
-
-        /// got some casting here: could any of it be hurting performance?
-        for edge in &graph.edges_per_node[&(current.value.0 as usize)] {
-            queue.push(PriorityQueueItem {
-                cost: Cost(current.cost.0 + edge.cost.0),
-                value: edge.to,
-            });
-        }
-    }
-
-    cost_per_node
 }
 
 
