@@ -65,6 +65,10 @@ struct GraphPT {
     edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
 }
 
+
+
+
+
 fn main() {
     //serialise_list("start_nodes");
     //serialise_list("init_travel_times");
@@ -73,6 +77,8 @@ fn main() {
     //serialise_list_of_lists("node_values");
     //serialise_list_of_lists("travel_time_relationships");
     //serialise_hashmap_i8("subpurpose_purpose_lookup");
+
+    demonstrate_mutable_q();
 
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
@@ -116,6 +122,31 @@ fn main() {
     );
     println!("Score from last start node {:?}", score_store.pop());
 }
+
+
+
+/// this and push_to_q() are for reference only
+fn demonstrate_mutable_q() {
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
+    queue.push(PriorityQueueItem {
+        cost: Cost(0),
+        value: NodeID(1),
+    });
+    push_to_q(&mut queue);
+    push_to_q(&mut queue);
+    while let Some(current) = queue.pop() {
+        println!("{}, {}", current.value, current.cost);
+    }
+}
+
+fn push_to_q(queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>) {
+    queue.push(PriorityQueueItem {
+        cost: Cost(1),
+        value: NodeID(2),
+    });
+}
+
+
 
 fn floodfill(
     graph_walk: &GraphWalk,
