@@ -65,6 +65,8 @@ struct GraphPT {
     edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
 }
 
+
+
 fn main() {
     /// these are for dev only: understanding time to run different
     //assess_cost_of_casting();
@@ -133,7 +135,7 @@ fn floodfill(
     subpurpose_purpose_lookup: &Vec<i8>,
     graph_pt: &GraphPT,
     trip_start_seconds: i32,
-) -> (i32, Vec<i32>) {
+) -> (i32, Vec<i64>) {
     let time_limit = Cost(3600);
     let subpurposes_count = node_values[0].len() as usize;
     let now = Instant::now();
@@ -148,7 +150,7 @@ fn floodfill(
     let mut total_iters = 0;
     let mut pt_iters = 0;
 
-    let mut scores: Vec<i32> = Vec::new();
+    let mut scores: Vec<i64> = Vec::new();
     for i in 1..(subpurposes_count + 1) {
         scores.push(0);
     }
@@ -215,18 +217,18 @@ fn get_scores(
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &Vec<i8>,
     subpurposes_count: usize,
-    scores: &mut Vec<i32>,
+    scores: &mut Vec<i64>,
 ) {
 
     for i in 0..subpurposes_count {
 
         // these are the original 3 lines
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
-        let multipler = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+        let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
 
         // this line is slowing the whole thing down !!!!
-        scores[i] += values_this_node[i] * multiplier;
-        
+        scores[i] += (values_this_node[i] * multiplier) as i64;
+
         // the thing that takes ages is: scores[i] += values_this_node[i] 
         // scores[i] += 1; is mega-fast
         // doesnt make much difference if multiplier is included or not
@@ -243,7 +245,6 @@ fn get_pt_connections(
     trip_start_seconds: i32,
     current_node: &NodeID,
 ) {
-    ///-> (Cost, NodeID) {
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 
@@ -434,7 +435,7 @@ fn test_vec_subset_speed() {
 
     //let mut VoV: <Vec<Vec<i32>>;
     for _ in 1..1000 {
-        let mut scores: Vec<i32> = Vec::new();
+        let mut scores: Vec<i64> = Vec::new();
         for i in 1..2000 {
             scores.push(0);
         }
@@ -455,7 +456,7 @@ fn test_vec_subset_speed() {
     println!("VoV took {:?}", now.elapsed());
 
     let now = Instant::now();
-    let mut topps: i32 = 0;
+    let mut topps: i64 = 0;
     let mut iters: i32 = 0;
     for i in 0..999 {
         for k in 0..1999 {
@@ -466,7 +467,7 @@ fn test_vec_subset_speed() {
     println!("VoV took {:?}\ttopps: {}", now.elapsed(), topps);
 
     let now = Instant::now();
-    let mut topps: i32 = 0;
+    let mut topps: i64 = 0;
     let mut iters: i32 = 0;
     for i in 0..999 {
         for k in 0..1999 {
@@ -484,14 +485,14 @@ fn assess_cost_of_casting() {
 
     //let mut VoV: <Vec<Vec<i32>>;
     for _ in 1..1000 {
-        let mut scores: Vec<i32> = Vec::new();
+        let mut scores: Vec<i64> = Vec::new();
         for i in 1..2000 {
             scores.push(0);
         }
         VoV.push(scores);
     }
     let now = Instant::now();
-    let mut topps: i32 = 1;
+    let mut topps: i64 = 1;
     let mut iters: i32 = 0;
     for i in 0..999 {
         for k in 0..1999 {
@@ -502,18 +503,18 @@ fn assess_cost_of_casting() {
     println!("VoV without casting took {:?}", now.elapsed());
 
     let now = Instant::now();
-    let mut topps: i16 = 1;
+    let mut topps: i64 = 1;
     let mut iters: i32 = 0;
     for i in 0..999 {
         for k in 0..1999 {
-            VoV[i][k] += topps as i32;
+            VoV[i][k] += topps;
             //iters += 1;
         }
     }
     println!("VoV WITH casting took {:?}, {}", now.elapsed(), VoV[5][5]);
 
     let now = Instant::now();
-    let mut topps: i16 = 1;
+    let mut topps: i32 = 1;
     let mut iters: i32 = 0;
     for i in 0..999 {
         for k in 0..1999 {
