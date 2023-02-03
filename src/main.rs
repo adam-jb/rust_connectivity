@@ -165,6 +165,7 @@ fn floodfill(
 
         // if the node id is under 40m, then it will have an associated value
         if current.value.0 < 40_000_000 {
+            
             get_scores(
                 &node_values[(current.value.0 as usize)],
                 current.cost.0,
@@ -173,6 +174,7 @@ fn floodfill(
                 subpurposes_count,
                 &mut scores,
             );
+            
         }
 
         // Finding adjacent walk nodes
@@ -187,49 +189,56 @@ fn floodfill(
         // if node has a timetable associated with it: the first value in the first 'edge'
         // will be 1 if it does, and 0 if it doesn't
         if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
-            let pt_connection = get_pt_connections(
+            //let pt_connection = get_pt_connections(
+            get_pt_connections(
                 &graph_walk,
                 &graph_pt, // alter this to be a vector of vectors
                 current.cost.0,
-                &queue,
+                &mut queue,
                 time_limit,
                 trip_start_seconds,
                 &current.value,
             );
 
-            /// as get_pt_connections() doesn't push to queue inside the function, do it here (ideally change this to save cycles)
-            // pt_connection.0.0 is seconds since start of simulation
-            if pt_connection.0 .0 > 0 {
-                queue.push(PriorityQueueItem {
-                    cost: pt_connection.0,
-                    value: pt_connection.1,
-                });
-
-                pt_iters += 1;
-            }
         }
 
         total_iters += 1;
     }
-    println!(
-        "pt_iters: {}\ttotal_iters: {}\t{:?}",
-        pt_iters,
-        total_iters,
-        now.elapsed()
-    );
+    println!("total_iters: {}\t{:?}", total_iters, now.elapsed());
 
     return (total_iters, scores);
+}
+
+fn get_scores(
+    values_this_node: &Vec<i32>,
+    time_so_far: u16,
+    travel_time_relationships: &Vec<Vec<i32>>,
+    subpurpose_purpose_lookup: &Vec<i8>,
+    subpurposes_count: usize,
+    scores: &mut Vec<i32>,
+) {
+    for i in 0..subpurposes_count {
+        let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
+        let multipler = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+        
+        /// the thing that takes ages is: scores[i] += values_this_node[i] 
+        // scores[i] += 1; is mega-fast
+        // doesnt make much difference if multiplier is included or not
+        scores[i] += values_this_node[i] * multipler;
+        
+    }
 }
 
 fn get_pt_connections(
     graph_walk: &GraphWalk,
     graph_pt: &GraphPT,
     time_so_far: u16,
-    queue: &BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
+    queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
     time_limit: Cost,
     trip_start_seconds: i32,
     current_node: &NodeID,
-) -> (Cost, NodeID) {
+) {
+    ///-> (Cost, NodeID) {
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 
@@ -246,44 +255,24 @@ fn get_pt_connections(
         }
     }
 
-    // export
-    let mut output = (Cost(0 as u16), NodeID(0 as u32));
+    // add to queue
     if found_next_service == 1 {
         let wait_time_this_stop = next_leaving_time as u32 - time_of_arrival_current_node;
         let arrival_time_next_stop =
             time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
 
         if arrival_time_next_stop < time_limit.0 as u32 {
-            //// prep output for queue. Notice this uses 'leavingTime' as first 'edge' for each node stores ID
+            //// Notice this uses 'leavingTime' as first 'edge' for each node stores ID
             //// of next node: this is legacy from our matrix-based approach in python
-            //// Todo: would be better to write to queue inplace to save shunting data around as much
             let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0]
                 .leavingTime
                 .0;
-            //println!("destination_node {}", destination_node);
 
-            output = (
-                Cost(arrival_time_next_stop as u16),
-                NodeID(*destination_node as u32),
-            );
+            queue.push(PriorityQueueItem {
+                cost: Cost(arrival_time_next_stop as u16),
+                value: NodeID(*destination_node as u32),
+            });
         };
-    }
-
-    return output;
-}
-
-fn get_scores(
-    values_this_node: &Vec<i32>,
-    time_so_far: u16,
-    travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &Vec<i8>,
-    subpurposes_count: usize,
-    scores: &mut Vec<i32>,
-) {
-    for i in 0..subpurposes_count {
-        let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
-        scores[i] += values_this_node[i]
-            * travel_time_relationships[ix_purpose as usize][time_so_far as usize];
     }
 }
 
