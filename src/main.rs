@@ -67,13 +67,13 @@ fn main() {
     //test_vec_subset_speed();
     //demonstrate_mutable_q();
 
+    //serialise_list_i8("subpurpose_purpose_lookup");
     //serialise_list("start_nodes");
     //serialise_list("init_travel_times");
     //serialise_GraphWalk();
     //serialise_GraphPT();
     //serialise_list_of_lists("node_values");
     //serialise_list_of_lists("travel_time_relationships");
-    //serialise_hashmap_i8("subpurpose_purpose_lookup");
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
@@ -81,16 +81,12 @@ fn main() {
     let graph_pt = read_GraphPT();
     let node_values = read_list_of_lists_vect32("node_values");
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
-
-    // todo: check the keys are in perfect order when extract the values here
-    let subpurpose_purpose_lookup: Vec<i8> = read_hashmap_i8("subpurpose_purpose_lookup")
-        .into_values()
-        .collect();
+    let subpurpose_purpose_lookup = read_serialised_vect8("subpurpose_purpose_lookup");
     println!("Loading took {:?}", now.elapsed());
 
 
     // Read as per the above with multiproc. 
-    // Exclude subpurpose_purpose_lookup as it's tiny and gets transformed above too
+    // Exclude subpurpose_purpose_lookup as it's tiny
      // ResultType allows one func to return different types of objects
      enum ResultType {
         list_of_lists(Vec<Vec<i32>>),
@@ -294,7 +290,7 @@ fn get_scores(
 
         // the thing that takes ages is: scores[i] += values_this_node[i]
         // scores[i] += 1; is mega-fast
-        // doesnt make much difference if multiplier is included or not
+        // doesnt make much difference if 'multiplier' is included or not
     }
 }
 
@@ -344,6 +340,8 @@ fn get_pt_connections(
     }
 }
 
+/// No longer used subpurpose lookup is a vector not a hashmap now
+/*
 fn serialise_hashmap_i8(filename: &str) {
     let inpath = format!("data/{}.json", filename);
     let contents = std::fs::read_to_string(&inpath).unwrap();
@@ -362,6 +360,7 @@ fn read_hashmap_i8(filename: &str) -> HashMap<i8, i8> {
     let output: HashMap<i8, i8> = bincode::deserialize_from(file).unwrap();
     output
 }
+*/
 
 fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
     let inpath = format!("serialised_data/{}.bin", filename);
@@ -460,10 +459,30 @@ fn serialise_list(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
+
+fn serialise_list_i8(filename: &str) {
+    let inpath = format!("data/{}.json", filename);
+    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let output: Vec<i8> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 fn read_serialised_vect32(filename: &str) -> Vec<i32> {
     let inpath = format!("serialised_data/{}.bin", filename);
     let file = BufReader::new(File::open(inpath).unwrap());
     let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
+    output
+}
+
+fn read_serialised_vect8(filename: &str) -> Vec<i8> {
+    let inpath = format!("serialised_data/{}.bin", filename);
+    let file = BufReader::new(File::open(inpath).unwrap());
+    let output: Vec<i8> = bincode::deserialize_from(file).unwrap();
     output
 }
 
