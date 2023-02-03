@@ -82,11 +82,56 @@ fn main() {
     let node_values = read_list_of_lists_vect32("node_values");
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
 
-    /// todo: check the keys are in perfect order when extract the values here
+    // todo: check the keys are in perfect order when extract the values here
     let subpurpose_purpose_lookup: Vec<i8> = read_hashmap_i8("subpurpose_purpose_lookup")
         .into_values()
         .collect();
     println!("Loading took {:?}", now.elapsed());
+
+
+    // Read as per the above with multiproc. 
+    // Exclude subpurpose_purpose_lookup as it's tiny and gets transformed above too
+     // ResultType allows one func to return different types of objects
+     enum ResultType {
+        list_of_lists(Vec<Vec<i32>>),
+        GraphWalk(GraphWalk),
+        GraphPT(GraphPT),
+        list(Vec<i32>),
+    }
+
+    let mut files_to_read_vec = Vec::new();
+    files_to_read_vec.push(("read_serialised_vect32","start_nodes"));
+    files_to_read_vec.push(("read_serialised_vect32","init_travel_times"));
+    files_to_read_vec.push(("read_GraphWalk", ""));
+    files_to_read_vec.push(("read_GraphPT", ""));
+    files_to_read_vec.push(("read_list_of_lists_vect32", "node_values"));
+    files_to_read_vec.push(("read_list_of_lists_vect32", "travel_time_relationships"));
+   
+    fn execute_read_func_from_tuple(tin: (&str,&str)) -> ResultType {
+        return match tin.0 {
+            "read_list_of_lists_vect32" => ResultType::list_of_lists(read_list_of_lists_vect32(tin.1)),
+            "read_GraphWalk" => ResultType::GraphWalk(read_GraphWalk()),
+            "read_GraphPT" => ResultType::GraphPT(read_GraphPT()),
+            "read_serialised_vect32" => ResultType::list(read_serialised_vect32(tin.1)),
+            _ => panic!("Unknown function"),
+        };
+    }
+
+    // parallel load test
+    let now = Instant::now();
+    let inputs_map: HashMap<String, ResultType> = files_to_read_vec
+        .par_iter()
+        .map(|input| (input.0.to_string() + "-" + &input.1, execute_read_func_from_tuple(*input)))
+        .collect();
+    println!("Parallel file reading took {:?}", now.elapsed());
+
+    for key in inputs_map.keys() {
+        println!("{}", key);
+    }
+    // todo: functionalise the above section
+
+
+
 
     let trip_start_seconds = 3600 * 8;
 
@@ -133,6 +178,8 @@ fn main() {
         parallel_res[0]
     );
 }
+
+
 
 fn floodfill(
     (
