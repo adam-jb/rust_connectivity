@@ -85,7 +85,11 @@ fn main() {
     let graph_pt = read_GraphPT();
     let node_values = read_list_of_lists_vect32("node_values");
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
-    let subpurpose_purpose_lookup = read_hashmap_i8("subpurpose_purpose_lookup");
+
+    /// todo: check the keys are in perfect order when extract the values here
+    let subpurpose_purpose_lookup: Vec<i8> = read_hashmap_i8("subpurpose_purpose_lookup")
+        .into_values()
+        .collect();
     println!("Loading took {:?}", now.elapsed());
 
     let number_of_destination_categories = 5;
@@ -126,7 +130,7 @@ fn floodfill(
     start: NodeID,
     node_values: &Vec<Vec<i32>>,
     travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &HashMap<i8, i8>,
+    subpurpose_purpose_lookup: &Vec<i8>,
     graph_pt: &GraphPT,
     trip_start_seconds: i32,
 ) -> (i32, Vec<i32>) {
@@ -161,10 +165,6 @@ fn floodfill(
 
         // if the node id is under 40m, then it will have an associated value
         if current.value.0 < 40_000_000 {
-            // to do: node_values uses (what is probably) Expensive casting!
-            // can the 'borrow' (&) be used to speed this up?
-            // Can we change 'scores' inplace within the function to speed this up, perhaps
-            // by making making 'scores' global (as we do in python)
             get_scores(
                 &node_values[(current.value.0 as usize)],
                 current.cost.0,
@@ -173,18 +173,6 @@ fn floodfill(
                 subpurposes_count,
                 &mut scores,
             );
-            /*
-            let new_scores = get_scores(
-                &node_values[(current.value.0 as usize)],
-                current.cost.0,
-                travel_time_relationships,
-                subpurpose_purpose_lookup,
-                subpurposes_count,
-            );
-            for i in 0..subpurposes_count {
-                scores[i] += new_scores[i];
-            }
-            */
         }
 
         // Finding adjacent walk nodes
@@ -288,12 +276,12 @@ fn get_scores(
     values_this_node: &Vec<i32>,
     time_so_far: u16,
     travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &HashMap<i8, i8>,
+    subpurpose_purpose_lookup: &Vec<i8>,
     subpurposes_count: usize,
     scores: &mut Vec<i32>,
 ) {
     for i in 0..subpurposes_count {
-        let ix_purpose = subpurpose_purpose_lookup[&(i as i8)];
+        let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         scores[i] += values_this_node[i]
             * travel_time_relationships[ix_purpose as usize][time_so_far as usize];
     }
