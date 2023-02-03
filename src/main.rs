@@ -13,6 +13,8 @@ use std::io::{BufReader, BufWriter};
 use std::thread;
 use std::time::Duration;
 
+use rayon::prelude::*;
+
 use google_cloud_storage::client::Client;
 use google_cloud_storage::http::objects::download::Range;
 use google_cloud_storage::http::objects::get::GetObjectRequest;
@@ -86,28 +88,29 @@ fn main() {
         .collect();
     println!("Loading took {:?}", now.elapsed());
 
-    let number_of_destination_categories = 5;
     let trip_start_seconds = 3600 * 8;
 
-    // Loop through start nodes at random
-    let mut rng = WyRand::new();
     let now = Instant::now();
     let mut score_store = Vec::new();
     let mut total_iters_counter = 0;
 
-    for start_ix in 0..100 {
-        let start = NodeID((start_nodes[start_ix] as u32));
-        let (total_iters, scores) = floodfill(
+    let mut model_parameters_each_start = Vec::new();
+    for i in 0..100 {
+        model_parameters_each_start.push((
             &graph_walk,
-            start,
+            NodeID((start_nodes[i] as u32)),
             &node_values,
             &travel_time_relationships,
             &subpurpose_purpose_lookup,
             &graph_pt,
             trip_start_seconds,
+        ))
+    }
+    for input in &model_parameters_each_start {
+        let (total_iters, scores) = floodfill(
+            *input,
         );
 
-        // store
         total_iters_counter += total_iters;
         score_store.push(scores);
     }
@@ -117,18 +120,39 @@ fn main() {
         total_iters_counter
     );
     println!("Score from last start node {:?}", score_store.pop());
+
+    // parallel speed test
+    let now = Instant::now();
+    let parallel_res: Vec<(i32, Vec<i64>)> = model_parameters_each_start
+        .par_iter()
+        .map(|input| floodfill(*input))
+        .collect();
+    println!(
+        "Parallel floodfill took {:?}\tFirst node scores: {:?}",
+        now.elapsed(),
+        parallel_res[0]
+    );
 }
 
 fn floodfill(
-    graph_walk: &GraphWalk,
-    start: NodeID,
-    node_values: &Vec<Vec<i32>>,
-    travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &Vec<i8>,
-    graph_pt: &GraphPT,
-    trip_start_seconds: i32,
+    (
+        graph_walk,
+        start,
+        node_values,
+        travel_time_relationships,
+        subpurpose_purpose_lookup,
+        graph_pt,
+        trip_start_seconds,
+    ): (
+        &GraphWalk,
+        NodeID,
+        &Vec<Vec<i32>>,
+        &Vec<Vec<i32>>,
+        &Vec<i8>,
+        &GraphPT,
+        i32,
+    ), 
 ) -> (i32, Vec<i64>) {
-    //ArrayVec<i64, 32>)
 
     const time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = node_values[0].len() as usize;
