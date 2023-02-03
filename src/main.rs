@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::time::Instant;
 
+use fs_err::File;
 use nanorand::{Rng, WyRand};
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fmt;
-use fs_err::File;
 use std::io::{BufReader, BufWriter};
 use std::thread;
 use std::time::Duration;
@@ -67,13 +67,17 @@ fn main() {
     //test_vec_subset_speed();
     //demonstrate_mutable_q();
 
-    //serialise_list("start_nodes");
-    //serialise_list("init_travel_times");
-    //serialise_GraphWalk();
-    //serialise_GraphPT();
-    //serialise_list_of_lists("node_values");
-    //serialise_list_of_lists("travel_time_relationships");
-    //serialise_hashmap_i8("subpurpose_purpose_lookup");
+    // If you need to regenerate the serialised files, change to if (true)
+    if false {
+        serialise_list("start_nodes");
+        serialise_list("init_travel_times");
+        serialise_GraphWalk();
+        serialise_GraphPT();
+        serialise_list_of_lists("node_values");
+        serialise_list_of_lists("travel_time_relationships");
+        serialise_hashmap_i8("subpurpose_purpose_lookup");
+    }
+
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
@@ -88,11 +92,10 @@ fn main() {
         .collect();
     println!("Loading took {:?}", now.elapsed());
 
-
-    // Read as per the above with multiproc. 
+    // Read as per the above with multiproc.
     // Exclude subpurpose_purpose_lookup as it's tiny and gets transformed above too
-     // ResultType allows one func to return different types of objects
-     enum ResultType {
+    // ResultType allows one func to return different types of objects
+    enum ResultType {
         list_of_lists(Vec<Vec<i32>>),
         GraphWalk(GraphWalk),
         GraphPT(GraphPT),
@@ -100,16 +103,18 @@ fn main() {
     }
 
     let mut files_to_read_vec = Vec::new();
-    files_to_read_vec.push(("read_serialised_vect32","start_nodes"));
-    files_to_read_vec.push(("read_serialised_vect32","init_travel_times"));
+    files_to_read_vec.push(("read_serialised_vect32", "start_nodes"));
+    files_to_read_vec.push(("read_serialised_vect32", "init_travel_times"));
     files_to_read_vec.push(("read_GraphWalk", ""));
     files_to_read_vec.push(("read_GraphPT", ""));
     files_to_read_vec.push(("read_list_of_lists_vect32", "node_values"));
     files_to_read_vec.push(("read_list_of_lists_vect32", "travel_time_relationships"));
-   
-    fn execute_read_func_from_tuple(tin: (&str,&str)) -> ResultType {
+
+    fn execute_read_func_from_tuple(tin: (&str, &str)) -> ResultType {
         return match tin.0 {
-            "read_list_of_lists_vect32" => ResultType::list_of_lists(read_list_of_lists_vect32(tin.1)),
+            "read_list_of_lists_vect32" => {
+                ResultType::list_of_lists(read_list_of_lists_vect32(tin.1))
+            }
             "read_GraphWalk" => ResultType::GraphWalk(read_GraphWalk()),
             "read_GraphPT" => ResultType::GraphPT(read_GraphPT()),
             "read_serialised_vect32" => ResultType::list(read_serialised_vect32(tin.1)),
@@ -121,7 +126,12 @@ fn main() {
     let now = Instant::now();
     let inputs_map: HashMap<String, ResultType> = files_to_read_vec
         .par_iter()
-        .map(|input| (input.0.to_string() + "-" + &input.1, execute_read_func_from_tuple(*input)))
+        .map(|input| {
+            (
+                input.0.to_string() + "-" + &input.1,
+                execute_read_func_from_tuple(*input),
+            )
+        })
         .collect();
     println!("Parallel file reading took {:?}", now.elapsed());
 
@@ -129,9 +139,6 @@ fn main() {
         println!("{}", key);
     }
     // todo: functionalise the above section
-
-
-
 
     let trip_start_seconds = 3600 * 8;
 
@@ -152,9 +159,7 @@ fn main() {
         ))
     }
     for input in &model_parameters_each_start {
-        let (total_iters, scores) = floodfill(
-            *input,
-        );
+        let (total_iters, scores) = floodfill(*input);
 
         total_iters_counter += total_iters;
         score_store.push(scores);
@@ -179,8 +184,6 @@ fn main() {
     );
 }
 
-
-
 fn floodfill(
     (
         graph_walk,
@@ -198,9 +201,8 @@ fn floodfill(
         &Vec<i8>,
         &GraphPT,
         i32,
-    ), 
+    ),
 ) -> (i32, Vec<i64>) {
-
     const time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = node_values[0].len() as usize;
     let now = Instant::now();
