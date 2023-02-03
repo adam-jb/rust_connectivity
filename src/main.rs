@@ -65,11 +65,12 @@ struct GraphPT {
     edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
 }
 
-
-
-
-
 fn main() {
+    /// these are for dev only: understanding time to run different
+    //assess_cost_of_casting();
+    //test_vec_subset_speed();
+    //demonstrate_mutable_q();
+
     //serialise_list("start_nodes");
     //serialise_list("init_travel_times");
     //serialise_GraphWalk();
@@ -77,9 +78,6 @@ fn main() {
     //serialise_list_of_lists("node_values");
     //serialise_list_of_lists("travel_time_relationships");
     //serialise_hashmap_i8("subpurpose_purpose_lookup");
-
-    demonstrate_mutable_q();
-
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
@@ -122,31 +120,6 @@ fn main() {
     );
     println!("Score from last start node {:?}", score_store.pop());
 }
-
-
-
-/// this and push_to_q() are for reference only
-fn demonstrate_mutable_q() {
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
-    queue.push(PriorityQueueItem {
-        cost: Cost(0),
-        value: NodeID(1),
-    });
-    push_to_q(&mut queue);
-    push_to_q(&mut queue);
-    while let Some(current) = queue.pop() {
-        println!("{}, {}", current.value, current.cost);
-    }
-}
-
-fn push_to_q(queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>) {
-    queue.push(PriorityQueueItem {
-        cost: Cost(1),
-        value: NodeID(2),
-    });
-}
-
-
 
 fn floodfill(
     graph_walk: &GraphWalk,
@@ -192,6 +165,15 @@ fn floodfill(
             // can the 'borrow' (&) be used to speed this up?
             // Can we change 'scores' inplace within the function to speed this up, perhaps
             // by making making 'scores' global (as we do in python)
+            get_scores(
+                &node_values[(current.value.0 as usize)],
+                current.cost.0,
+                travel_time_relationships,
+                subpurpose_purpose_lookup,
+                subpurposes_count,
+                &mut scores,
+            );
+            /*
             let new_scores = get_scores(
                 &node_values[(current.value.0 as usize)],
                 current.cost.0,
@@ -202,6 +184,7 @@ fn floodfill(
             for i in 0..subpurposes_count {
                 scores[i] += new_scores[i];
             }
+            */
         }
 
         // Finding adjacent walk nodes
@@ -307,18 +290,13 @@ fn get_scores(
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &HashMap<i8, i8>,
     subpurposes_count: usize,
-) -> Vec<i32> {
-    let mut new_scores: Vec<i32> = Vec::new();
-
+    scores: &mut Vec<i32>,
+) {
     for i in 0..subpurposes_count {
-        let location_value = values_this_node[i];
         let ix_purpose = subpurpose_purpose_lookup[&(i as i8)];
-        new_scores.push(
-            location_value * travel_time_relationships[ix_purpose as usize][time_so_far as usize],
-        );
+        scores[i] += values_this_node[i]
+            * travel_time_relationships[ix_purpose as usize][time_so_far as usize];
     }
-
-    new_scores
 }
 
 fn serialise_hashmap_i8(filename: &str) {
@@ -446,4 +424,120 @@ fn read_serialised_vect32(filename: &str) -> Vec<i32> {
 
 fn print_type_of<T>(_: &T) {
     println!("{}", std::any::type_name::<T>())
+}
+
+/// this and push_to_q() are for reference only
+fn demonstrate_mutable_q() {
+    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
+    queue.push(PriorityQueueItem {
+        cost: Cost(0),
+        value: NodeID(1),
+    });
+    push_to_q(&mut queue);
+    push_to_q(&mut queue);
+    while let Some(current) = queue.pop() {
+        println!("{}, {}", current.value, current.cost);
+    }
+}
+
+fn push_to_q(queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>) {
+    queue.push(PriorityQueueItem {
+        cost: Cost(1),
+        value: NodeID(2),
+    });
+}
+
+fn test_vec_subset_speed() {
+    let mut VoV = Vec::new();
+
+    //let mut VoV: <Vec<Vec<i32>>;
+    for _ in 1..1000 {
+        let mut scores: Vec<i32> = Vec::new();
+        for i in 1..2000 {
+            scores.push(0);
+        }
+        VoV.push(scores);
+    }
+    println!("VoV len: {:?}", VoV.len());
+    println!("VoV inner len: {:?}", VoV[0].len());
+
+    let now = Instant::now();
+    let mut topps: i32 = 0;
+    let mut iters: i32 = 0;
+    for i in 0..999 {
+        for k in 0..1999 {
+            VoV[i][k];
+            //iters += 1;
+        }
+    }
+    println!("VoV took {:?}", now.elapsed());
+
+    let now = Instant::now();
+    let mut topps: i32 = 0;
+    let mut iters: i32 = 0;
+    for i in 0..999 {
+        for k in 0..1999 {
+            topps += VoV[i][k];
+            //iters += 1;
+        }
+    }
+    println!("VoV took {:?}\ttopps: {}", now.elapsed(), topps);
+
+    let now = Instant::now();
+    let mut topps: i32 = 0;
+    let mut iters: i32 = 0;
+    for i in 0..999 {
+        for k in 0..1999 {
+            topps += VoV[i][k];
+            iters += 1;
+        }
+    }
+    println!("VoV took {:?}\t with iters {}", now.elapsed(), iters);
+    // all the above shows assigning to 'iters' is much more time intensive than subsetting:
+    // dont bother with any other data structure
+}
+
+fn assess_cost_of_casting() {
+    let mut VoV = Vec::new();
+
+    //let mut VoV: <Vec<Vec<i32>>;
+    for _ in 1..1000 {
+        let mut scores: Vec<i32> = Vec::new();
+        for i in 1..2000 {
+            scores.push(0);
+        }
+        VoV.push(scores);
+    }
+    let now = Instant::now();
+    let mut topps: i32 = 1;
+    let mut iters: i32 = 0;
+    for i in 0..999 {
+        for k in 0..1999 {
+            VoV[i][k] += topps;
+            //iters += 1;
+        }
+    }
+    println!("VoV without casting took {:?}", now.elapsed());
+
+    let now = Instant::now();
+    let mut topps: i16 = 1;
+    let mut iters: i32 = 0;
+    for i in 0..999 {
+        for k in 0..1999 {
+            VoV[i][k] += topps as i32;
+            //iters += 1;
+        }
+    }
+    println!("VoV WITH casting took {:?}, {}", now.elapsed(), VoV[5][5]);
+
+    let now = Instant::now();
+    let mut topps: i16 = 1;
+    let mut iters: i32 = 0;
+    for i in 0..999 {
+        for k in 0..1999 {
+            //VoV[i][k] += topps as i32;
+            iters += topps as i32;
+        }
+    }
+    println!("Topps WITH casting took {:?}, {}", now.elapsed(), iters);
 }
