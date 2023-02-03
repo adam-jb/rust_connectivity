@@ -79,10 +79,15 @@ fn main() {
     let init_travel_times = read_serialised_vect32("init_travel_times");
     let graph_walk = read_GraphWalk();
     let graph_pt = read_GraphPT();
-    let node_values = read_list_of_lists_vect32("node_values");
+    let node_values_1d = get_node_values_1d();
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
     let subpurpose_purpose_lookup = read_serialised_vect8("subpurpose_purpose_lookup");
     println!("Loading took {:?}", now.elapsed());
+
+
+    // to delete
+    let node_values = read_list_of_lists_vect32("node_values");
+
 
 
     // Read as per the above with multiproc. 
@@ -140,7 +145,7 @@ fn main() {
         model_parameters_each_start.push((
             &graph_walk,
             NodeID((start_nodes[i] as u32)),
-            &node_values,
+            &node_values_1d,
             &travel_time_relationships,
             &subpurpose_purpose_lookup,
             &graph_pt,
@@ -177,11 +182,25 @@ fn main() {
 
 
 
+/// todo: make creation of node_values_1d part of serialisation (one-time-only run) 
+fn get_node_values_1d() -> Vec<i32> {
+    let node_values = read_list_of_lists_vect32("node_values");
+    let mut node_values_1d: Vec<i32> = Vec::new();
+    for node_vec in &node_values {
+        for specific_val in node_vec {
+            node_values_1d.push(*specific_val);
+        }
+    }
+    node_values_1d
+}
+
+
+
 fn floodfill(
     (
         graph_walk,
         start,
-        node_values,
+        node_values_1d,
         travel_time_relationships,
         subpurpose_purpose_lookup,
         graph_pt,
@@ -189,7 +208,7 @@ fn floodfill(
     ): (
         &GraphWalk,
         NodeID,
-        &Vec<Vec<i32>>,
+        &Vec<i32>,  //&Vec<Vec<i32>>,
         &Vec<Vec<i32>>,
         &Vec<i8>,
         &GraphPT,
@@ -198,7 +217,7 @@ fn floodfill(
 ) -> (i32, Vec<i64>) {
 
     const time_limit: Cost = Cost(3600);
-    let subpurposes_count: usize = node_values[0].len() as usize;
+    let subpurposes_count: usize = 32 as usize;
     let now = Instant::now();
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
@@ -231,7 +250,8 @@ fn floodfill(
         // if the node id is under 40m, then it will have an associated value
         if current.value.0 < 40_000_000 {
             get_scores(
-                &node_values[(current.value.0 as usize)],
+                current.value.0,
+                &node_values_1d,
                 current.cost.0,
                 travel_time_relationships,
                 subpurpose_purpose_lookup,
@@ -272,7 +292,8 @@ fn floodfill(
 }
 
 fn get_scores(
-    values_this_node: &Vec<i32>,
+    node_id: u32,
+    node_values_1d: &Vec<i32>,
     time_so_far: u16,
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &Vec<i8>,
@@ -280,13 +301,17 @@ fn get_scores(
     scores: &mut Vec<i64>,
     //scores: &mut ArrayVec<i64, 32>,
 ) {
+
+    // to subset node_values_1d
+    let start_pos = node_id * 32;
+
     // 32 subpurposes
     for i in 0..subpurposes_count {
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
-
+        
         // this line is slowing the whole thing down !!!!
-        scores[i] += (values_this_node[i] * multiplier) as i64;
+        scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
 
         // the thing that takes ages is: scores[i] += values_this_node[i]
         // scores[i] += 1; is mega-fast
