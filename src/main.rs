@@ -215,7 +215,7 @@ fn get_scores(
     scores: &mut Vec<i64>,
 ) {
     for i in 0..subpurposes_count {
-        // these are the original 3 lines
+
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
 
