@@ -1,3 +1,5 @@
+use arrayvec::ArrayVec;
+use rand::prelude::*;
 use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -8,6 +10,8 @@ use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
+use std::thread;
+use std::time::Duration;
 
 use google_cloud_storage::client::Client;
 use google_cloud_storage::http::objects::download::Range;
@@ -21,24 +25,14 @@ use self::priority_queue::PriorityQueueItem;
 
 mod priority_queue;
 
+//#[global_allocator]
+//static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 struct NodeID(u32);
 
-// implement display options for printing during debug
-impl fmt::Display for NodeID {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 struct Cost(u16);
-
-impl fmt::Display for Cost {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 struct LeavingTime(u32);
@@ -100,8 +94,8 @@ fn main() {
     let now = Instant::now();
     let mut score_store = Vec::new();
     let mut total_iters_counter = 0;
+
     for start_ix in 0..100 {
-        //let start_ix = rng.generate_range(0..start_nodes.len());
         let start = NodeID((start_nodes[start_ix] as u32));
         let (total_iters, scores) = floodfill(
             &graph_walk,
@@ -134,8 +128,10 @@ fn floodfill(
     graph_pt: &GraphPT,
     trip_start_seconds: i32,
 ) -> (i32, Vec<i64>) {
-    let time_limit = Cost(3600);
-    let subpurposes_count = node_values[0].len() as usize;
+    //ArrayVec<i64, 32>)
+
+    const time_limit: Cost = Cost(3600);
+    let subpurposes_count: usize = node_values[0].len() as usize;
     let now = Instant::now();
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
@@ -143,14 +139,16 @@ fn floodfill(
         cost: Cost(0),
         value: start,
     });
-
     let mut nodes_visited = HashSet::new();
     let mut total_iters = 0;
     let mut pt_iters = 0;
 
+    // hard coding with 32 subpurposes to fill scores for
+    //let mut scores = ArrayVec::<_, 32>::new();
     let mut scores: Vec<i64> = Vec::new();
-    for i in 1..(subpurposes_count + 1) {
-        scores.push(0);
+    for i in 0..32 {
+        //scores[i] = 0;
+        scores.insert(i, 0);
     }
 
     while let Some(current) = queue.pop() {
@@ -213,9 +211,10 @@ fn get_scores(
     subpurpose_purpose_lookup: &Vec<i8>,
     subpurposes_count: usize,
     scores: &mut Vec<i64>,
+    //scores: &mut ArrayVec<i64, 32>,
 ) {
+    // 32 subpurposes
     for i in 0..subpurposes_count {
-
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
 
@@ -411,7 +410,7 @@ fn demonstrate_mutable_q() {
     push_to_q(&mut queue);
     push_to_q(&mut queue);
     while let Some(current) = queue.pop() {
-        println!("{}, {}", current.value, current.cost);
+        println!("{}, {}", current.value.0, current.cost.0);
     }
 }
 
