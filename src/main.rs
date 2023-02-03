@@ -8,7 +8,7 @@ use std::time::Instant;
 use nanorand::{Rng, WyRand};
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fmt;
-use std::fs::File;
+use fs_err::File;
 use std::io::{BufReader, BufWriter};
 use std::thread;
 use std::time::Duration;
@@ -346,7 +346,7 @@ fn get_pt_connections(
 
 fn serialise_hashmap_i8(filename: &str) {
     let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: HashMap<i8, i8> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
@@ -372,7 +372,7 @@ fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
 
 fn serialise_list_of_lists(filename: &str) {
     let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: Vec<Vec<i32>> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
@@ -383,7 +383,7 @@ fn serialise_list_of_lists(filename: &str) {
 }
 
 fn serialise_GraphPT() {
-    let contents = std::fs::read_to_string("data/p2_main_nodes.json").unwrap();
+    let contents = fs_err::read_to_string("data/p2_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
     let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
@@ -422,7 +422,7 @@ fn read_GraphPT() -> GraphPT {
 }
 
 fn serialise_GraphWalk() {
-    let contents = std::fs::read_to_string("data/p1_main_nodes.json").unwrap();
+    let contents = fs_err::read_to_string("data/p1_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
     let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
@@ -450,7 +450,7 @@ fn serialise_GraphWalk() {
 
 fn serialise_list(filename: &str) {
     let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: Vec<i32> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
