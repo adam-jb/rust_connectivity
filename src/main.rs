@@ -217,15 +217,20 @@ fn get_scores(
     subpurposes_count: usize,
     scores: &mut Vec<i32>,
 ) {
+
     for i in 0..subpurposes_count {
+
+        // these are the original 3 lines
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         let multipler = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+
+        // this line is slowing the whole thing down !!!!
+        scores[i] += values_this_node[i] * multiplier;
         
-        /// the thing that takes ages is: scores[i] += values_this_node[i] 
+        // the thing that takes ages is: scores[i] += values_this_node[i] 
         // scores[i] += 1; is mega-fast
         // doesnt make much difference if multiplier is included or not
-        scores[i] += values_this_node[i] * multipler;
-        
+
     }
 }
 
