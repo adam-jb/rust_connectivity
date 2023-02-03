@@ -65,8 +65,6 @@ struct GraphPT {
     edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
 }
 
-
-
 fn main() {
     /// these are for dev only: understanding time to run different
     //assess_cost_of_casting();
@@ -167,7 +165,6 @@ fn floodfill(
 
         // if the node id is under 40m, then it will have an associated value
         if current.value.0 < 40_000_000 {
-            
             get_scores(
                 &node_values[(current.value.0 as usize)],
                 current.cost.0,
@@ -176,7 +173,6 @@ fn floodfill(
                 subpurposes_count,
                 &mut scores,
             );
-            
         }
 
         // Finding adjacent walk nodes
@@ -201,7 +197,6 @@ fn floodfill(
                 trip_start_seconds,
                 &current.value,
             );
-
         }
 
         total_iters += 1;
@@ -219,9 +214,7 @@ fn get_scores(
     subpurposes_count: usize,
     scores: &mut Vec<i64>,
 ) {
-
     for i in 0..subpurposes_count {
-
         // these are the original 3 lines
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
@@ -229,10 +222,9 @@ fn get_scores(
         // this line is slowing the whole thing down !!!!
         scores[i] += (values_this_node[i] * multiplier) as i64;
 
-        // the thing that takes ages is: scores[i] += values_this_node[i] 
+        // the thing that takes ages is: scores[i] += values_this_node[i]
         // scores[i] += 1; is mega-fast
         // doesnt make much difference if multiplier is included or not
-
     }
 }
 
