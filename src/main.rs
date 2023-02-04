@@ -169,7 +169,7 @@ fn main() {
 
     // parallel speed test
     let now = Instant::now();
-    let parallel_res: Vec<(i32, Vec<i64>)> = model_parameters_each_start
+    let parallel_res: Vec<(i32, [i64; 32])> = model_parameters_each_start
         .par_iter()
         .map(|input| floodfill(*input))
         .collect();
@@ -214,7 +214,7 @@ fn floodfill(
         &GraphPT,
         i32,
     ), 
-) -> (i32, Vec<i64>) {
+) -> (i32, [i64; 32]) {  //Vec<i64>) {
 
     const time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
@@ -230,12 +230,13 @@ fn floodfill(
     let mut pt_iters = 0;
 
     // hard coding with 32 subpurposes to fill scores for
-    //let mut scores = ArrayVec::<_, 32>::new();
+    /*
     let mut scores: Vec<i64> = Vec::new();
     for i in 0..32 {
-        //scores[i] = 0;
         scores.insert(i, 0);
     }
+    */
+    let mut scores: [i64; 32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
     while let Some(current) = queue.pop() {
         if nodes_visited.contains(&current.value) {
@@ -298,7 +299,7 @@ fn get_scores(
     travel_time_relationships: &Vec<Vec<i32>>,
     subpurpose_purpose_lookup: &Vec<i8>,
     subpurposes_count: usize,
-    scores: &mut Vec<i64>,
+    scores: &mut [i64; 32],
     //scores: &mut ArrayVec<i64, 32>,
 ) {
 
