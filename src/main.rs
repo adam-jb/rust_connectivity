@@ -67,7 +67,7 @@ fn main() {
     //test_vec_subset_speed();
     //demonstrate_mutable_q();
 
-    serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
+    //serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
     //serialise_list_i8("subpurpose_purpose_lookup");
     //serialise_list("start_nodes");
     //serialise_list("init_travel_times");
@@ -87,14 +87,11 @@ fn main() {
     println!("Loading took {:?}", now.elapsed());
 
 
-    // to delete
-    let node_values = read_list_of_lists_vect32("node_values");
-
-
 
     // Read as per the above with multiproc. 
     // Exclude subpurpose_purpose_lookup as it's tiny
      // ResultType allows one func to return different types of objects
+     
      enum ResultType {
         list_of_lists(Vec<Vec<i32>>),
         GraphWalk(GraphWalk),
@@ -138,10 +135,6 @@ fn main() {
 
     let trip_start_seconds = 3600 * 8;
 
-    let now = Instant::now();
-    let mut score_store = Vec::new();
-    let mut total_iters_counter = 0;
-
     let mut model_parameters_each_start = Vec::new();
     for i in 0..100 {
         model_parameters_each_start.push((
@@ -154,6 +147,10 @@ fn main() {
             trip_start_seconds,
         ))
     }
+
+    let now = Instant::now();
+    let mut score_store = Vec::new();
+    let mut total_iters_counter = 0;
     for input in &model_parameters_each_start {
         let (total_iters, scores) = floodfill(
             *input,
