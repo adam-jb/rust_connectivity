@@ -68,7 +68,6 @@ fn main() {
     //demonstrate_mutable_q();
 
     //serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
-    //serialise_list_i8("subpurpose_purpose_lookup");
     //serialise_list("start_nodes");
     //serialise_list("init_travel_times");
     //serialise_GraphWalk();
@@ -86,13 +85,14 @@ fn main() {
     let subpurpose_purpose_lookup = read_serialised_immutable_array8("subpurpose_purpose_lookup");
     println!("Loading took {:?}", now.elapsed());
 
-
-
-    // Read as per the above with multiproc. 
+    // This section attempts to read as per the above with multiproc.
     // Exclude subpurpose_purpose_lookup as it's tiny
-     // ResultType allows one func to return different types of objects
-     
-     enum ResultType {
+    // ResultType allows one func to return different types of objects: right now
+    // am stuck with a hashmap of ResultType objects, each of which contains an object I want to be
+    // accessible normally (ie, by calling the variable name, with no hashmap involved). I expect spawning
+    // processes to be inefficient (bc I assume it involves copying objects between memory at some point, 
+    // unless all processes can write to a shared section of memory)
+    enum ResultType {
         list_of_lists(Vec<Vec<i32>>),
         GraphWalk(GraphWalk),
         GraphPT(GraphPT),
@@ -100,16 +100,18 @@ fn main() {
     }
 
     let mut files_to_read_vec = Vec::new();
-    files_to_read_vec.push(("read_serialised_vect32","start_nodes"));
-    files_to_read_vec.push(("read_serialised_vect32","init_travel_times"));
+    files_to_read_vec.push(("read_serialised_vect32", "start_nodes"));
+    files_to_read_vec.push(("read_serialised_vect32", "init_travel_times"));
     files_to_read_vec.push(("read_GraphWalk", ""));
     files_to_read_vec.push(("read_GraphPT", ""));
     files_to_read_vec.push(("read_list_of_lists_vect32", "node_values"));
     files_to_read_vec.push(("read_list_of_lists_vect32", "travel_time_relationships"));
-   
-    fn execute_read_func_from_tuple(tin: (&str,&str)) -> ResultType {
+
+    fn execute_read_func_from_tuple(tin: (&str, &str)) -> ResultType {
         return match tin.0 {
-            "read_list_of_lists_vect32" => ResultType::list_of_lists(read_list_of_lists_vect32(tin.1)),
+            "read_list_of_lists_vect32" => {
+                ResultType::list_of_lists(read_list_of_lists_vect32(tin.1))
+            }
             "read_GraphWalk" => ResultType::GraphWalk(read_GraphWalk()),
             "read_GraphPT" => ResultType::GraphPT(read_GraphPT()),
             "read_serialised_vect32" => ResultType::list(read_serialised_vect32(tin.1)),
@@ -121,17 +123,21 @@ fn main() {
     let now = Instant::now();
     let inputs_map: HashMap<String, ResultType> = files_to_read_vec
         .par_iter()
-        .map(|input| (input.0.to_string() + "-" + &input.1, execute_read_func_from_tuple(*input)))
+        .map(|input| {
+            (
+                input.0.to_string() + "-" + &input.1,
+                execute_read_func_from_tuple(*input),
+            )
+        })
         .collect();
     println!("Parallel file reading took {:?}", now.elapsed());
 
     for key in inputs_map.keys() {
         println!("{}", key);
     }
+    print_type_of(&inputs_map["read_serialised_vect32-init_travel_times"]);
+    // end of attempt to multiprocess inputs
     // todo: functionalise the above section
-
-
-
 
     let trip_start_seconds = 3600 * 8;
 
@@ -152,9 +158,7 @@ fn main() {
     let mut score_store = Vec::new();
     let mut total_iters_counter = 0;
     for input in &model_parameters_each_start {
-        let (total_iters, scores) = floodfill(
-            *input,
-        );
+        let (total_iters, scores) = floodfill(*input);
 
         total_iters_counter += total_iters;
         score_store.push(scores);
@@ -179,9 +183,7 @@ fn main() {
     );
 }
 
-
-
-/// todo: make creation of node_values_1d part of serialisation (one-time-only run) 
+/// todo: make creation of node_values_1d part of serialisation (so it's only run once)
 fn get_node_values_1d() -> Vec<i32> {
     let node_values = read_list_of_lists_vect32("node_values");
     let mut node_values_1d: Vec<i32> = Vec::new();
@@ -192,8 +194,6 @@ fn get_node_values_1d() -> Vec<i32> {
     }
     node_values_1d
 }
-
-
 
 fn floodfill(
     (
@@ -207,13 +207,13 @@ fn floodfill(
     ): (
         &GraphWalk,
         NodeID,
-        &Vec<i32>,  //&Vec<Vec<i32>>,
+        &Vec<i32>, //&Vec<Vec<i32>>,
         &Vec<Vec<i32>>,
         &[i8; 32],
         &GraphPT,
         i32,
-    ), 
-) -> (i32, [i64; 32]) {  //Vec<i64>) {
+    ),
+) -> (i32, [i64; 32]) {
 
     const time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
@@ -228,14 +228,10 @@ fn floodfill(
     let mut total_iters = 0;
     let mut pt_iters = 0;
 
-    // hard coding with 32 subpurposes to fill scores for
-    /*
-    let mut scores: Vec<i64> = Vec::new();
-    for i in 0..32 {
-        scores.insert(i, 0);
-    }
-    */
-    let mut scores: [i64; 32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    let mut scores: [i64; 32] = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0,
+    ];
 
     while let Some(current) = queue.pop() {
         if nodes_visited.contains(&current.value) {
@@ -272,10 +268,9 @@ fn floodfill(
         // if node has a timetable associated with it: the first value in the first 'edge'
         // will be 1 if it does, and 0 if it doesn't
         if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
-            //let pt_connection = get_pt_connections(
             get_pt_connections(
                 &graph_walk,
-                &graph_pt, // alter this to be a vector of vectors
+                &graph_pt,
                 current.cost.0,
                 &mut queue,
                 time_limit,
@@ -301,7 +296,6 @@ fn get_scores(
     scores: &mut [i64; 32],
     //scores: &mut ArrayVec<i64, 32>,
 ) {
-
     // to subset node_values_1d
     let start_pos = node_id * 32;
 
@@ -309,13 +303,9 @@ fn get_scores(
     for i in 0..subpurposes_count {
         let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
         let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
-        
-        // this line is slowing the whole thing down !!!!
-        scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
 
-        // the thing that takes ages is: scores[i] += values_this_node[i]
-        // scores[i] += 1; is mega-fast
-        // doesnt make much difference if 'multiplier' is included or not
+        // this line could be faster, eg if node_values_1d was an array
+        scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
     }
 }
 
@@ -364,28 +354,6 @@ fn get_pt_connections(
         };
     }
 }
-
-/// No longer used subpurpose lookup is a vector not a hashmap now
-/*
-fn serialise_hashmap_i8(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
-    let output: HashMap<i8, i8> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
-fn read_hashmap_i8(filename: &str) -> HashMap<i8, i8> {
-    let inpath = format!("serialised_data/{}.bin", filename);
-    let file = BufReader::new(File::open(inpath).unwrap());
-    let output: HashMap<i8, i8> = bincode::deserialize_from(file).unwrap();
-    output
-}
-*/
 
 fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
     let inpath = format!("serialised_data/{}.bin", filename);
@@ -496,19 +464,6 @@ fn serialise_list_immutable_array_i8(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
-
-fn serialise_list_i8(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
-    let output: Vec<i8> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
 fn read_serialised_vect32(filename: &str) -> Vec<i32> {
     let inpath = format!("serialised_data/{}.bin", filename);
     let file = BufReader::new(File::open(inpath).unwrap());
@@ -532,27 +487,6 @@ fn read_serialised_vect8(filename: &str) -> Vec<i8> {
 
 fn print_type_of<T>(_: &T) {
     println!("{}", std::any::type_name::<T>())
-}
-
-/// this and push_to_q() are for reference only
-fn demonstrate_mutable_q() {
-    let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
-    queue.push(PriorityQueueItem {
-        cost: Cost(0),
-        value: NodeID(1),
-    });
-    push_to_q(&mut queue);
-    push_to_q(&mut queue);
-    while let Some(current) = queue.pop() {
-        println!("{}, {}", current.value.0, current.cost.0);
-    }
-}
-
-fn push_to_q(queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>) {
-    queue.push(PriorityQueueItem {
-        cost: Cost(1),
-        value: NodeID(2),
-    });
 }
 
 fn test_vec_subset_speed() {
