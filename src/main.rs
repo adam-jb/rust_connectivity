@@ -67,6 +67,7 @@ fn main() {
     //test_vec_subset_speed();
     //demonstrate_mutable_q();
 
+    serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
     //serialise_list_i8("subpurpose_purpose_lookup");
     //serialise_list("start_nodes");
     //serialise_list("init_travel_times");
@@ -81,7 +82,8 @@ fn main() {
     let graph_pt = read_GraphPT();
     let node_values_1d = get_node_values_1d();
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
-    let subpurpose_purpose_lookup = read_serialised_vect8("subpurpose_purpose_lookup");
+    //let subpurpose_purpose_lookup = read_serialised_vect8("subpurpose_purpose_lookup");
+    let subpurpose_purpose_lookup = read_serialised_immutable_array8("subpurpose_purpose_lookup");
     println!("Loading took {:?}", now.elapsed());
 
 
@@ -210,7 +212,7 @@ fn floodfill(
         NodeID,
         &Vec<i32>,  //&Vec<Vec<i32>>,
         &Vec<Vec<i32>>,
-        &Vec<i8>,
+        &[i8; 32],
         &GraphPT,
         i32,
     ), 
@@ -297,7 +299,7 @@ fn get_scores(
     node_values_1d: &Vec<i32>,
     time_so_far: u16,
     travel_time_relationships: &Vec<Vec<i32>>,
-    subpurpose_purpose_lookup: &Vec<i8>,
+    subpurpose_purpose_lookup: &[i8; 32],
     subpurposes_count: usize,
     scores: &mut [i64; 32],
     //scores: &mut ArrayVec<i64, 32>,
@@ -485,6 +487,18 @@ fn serialise_list(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
+fn serialise_list_immutable_array_i8(filename: &str) {
+    let inpath = format!("data/{}.json", filename);
+    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let output: [i8; 32] = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/{}.bin", filename);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 
 fn serialise_list_i8(filename: &str) {
     let inpath = format!("data/{}.json", filename);
@@ -502,6 +516,13 @@ fn read_serialised_vect32(filename: &str) -> Vec<i32> {
     let inpath = format!("serialised_data/{}.bin", filename);
     let file = BufReader::new(File::open(inpath).unwrap());
     let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
+    output
+}
+
+fn read_serialised_immutable_array8(filename: &str) -> [i8; 32] {
+    let inpath = format!("serialised_data/{}.bin", filename);
+    let file = BufReader::new(File::open(inpath).unwrap());
+    let output: [i8; 32] = bincode::deserialize_from(file).unwrap();
     output
 }
 
