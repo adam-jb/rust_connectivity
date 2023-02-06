@@ -18,6 +18,7 @@ arrayvec = "0.7.2"
 tikv-jemallocator = "0.4.0"
 rayon = "1.6.1"
 fs-err = "2.9.0"
+serde-big-array = "0.4.1"
 
 [profile.release]
 lto = true
