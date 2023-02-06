@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::time::Instant;
 
+use fs_err::File;
 use nanorand::{Rng, WyRand};
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fmt;
-use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::thread;
 use std::time::Duration;
@@ -67,13 +67,17 @@ fn main() {
     //test_vec_subset_speed();
     //demonstrate_mutable_q();
 
-    //serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
-    //serialise_list("start_nodes");
-    //serialise_list("init_travel_times");
-    //serialise_GraphWalk();
-    //serialise_GraphPT();
-    //serialise_list_of_lists("node_values");
-    //serialise_list_of_lists("travel_time_relationships");
+    // If you need to regenerate the serialised files, change to if (true)
+    if false {
+      serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
+      serialise_list("start_nodes");
+      serialise_list("init_travel_times");
+      serialise_GraphWalk();
+      serialise_GraphPT();
+      serialise_list_of_lists("node_values");
+      serialise_list_of_lists("travel_time_relationships");
+    }
+
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
@@ -213,6 +217,7 @@ fn floodfill(
         &GraphPT,
         i32,
     ),
+
 ) -> (i32, [i64; 32]) {
 
     const time_limit: Cost = Cost(3600);
@@ -364,7 +369,7 @@ fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
 
 fn serialise_list_of_lists(filename: &str) {
     let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: Vec<Vec<i32>> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 
@@ -375,7 +380,7 @@ fn serialise_list_of_lists(filename: &str) {
 }
 
 fn serialise_GraphPT() {
-    let contents = std::fs::read_to_string("data/p2_main_nodes.json").unwrap();
+    let contents = fs_err::read_to_string("data/p2_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
     let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
@@ -414,7 +419,7 @@ fn read_GraphPT() -> GraphPT {
 }
 
 fn serialise_GraphWalk() {
-    let contents = std::fs::read_to_string("data/p1_main_nodes.json").unwrap();
+    let contents = fs_err::read_to_string("data/p1_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
     let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
@@ -442,7 +447,7 @@ fn serialise_GraphWalk() {
 
 fn serialise_list(filename: &str) {
     let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
+    let contents = fs_err::read_to_string(&inpath).unwrap();
     let output: Vec<i32> = serde_json::from_str(&contents).unwrap();
     println!("Read from {}", inpath);
 

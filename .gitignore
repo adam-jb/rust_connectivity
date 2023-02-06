@@ -1,3 +1,5 @@
 /target
 data/*
 serialised_data/*
+*.swp
+.DS_Store
