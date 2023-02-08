@@ -22,19 +22,6 @@ pub fn serialise_files() {
     println!("File serialisation took {:?}", now.elapsed());
 }
 
-
-fn serialise_list_of_lists(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<Vec<i32>> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
 fn serialise_graph_pt() {
     let contents = fs_err::read_to_string("data/p2_main_nodes.json").unwrap();
 
