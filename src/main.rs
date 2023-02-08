@@ -17,7 +17,7 @@ mod read_files;
 
 fn main() {
 
-    // serialise_files();
+    //serialise_files();
     let (node_values_1d, start_nodes, init_travel_times, graph_walk, graph_pt, travel_time_relationships, subpurpose_purpose_lookup) = read_files_serial();
     
 

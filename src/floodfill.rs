@@ -17,8 +17,8 @@ pub fn floodfill(
     ): (
         &GraphWalk,
         NodeID,
-        &Vec<i32>, //&Vec<Vec<i32>>,
-        &Vec<Vec<i32>>,
+        &Vec<i32>,
+        &Vec<i32>,
         &[i8; 32],
         &GraphPT,
         i32,
@@ -100,7 +100,7 @@ fn get_scores(
     node_id: u32,
     node_values_1d: &Vec<i32>,
     time_so_far: u16,
-    travel_time_relationships: &Vec<Vec<i32>>,
+    travel_time_relationships: &Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     subpurposes_count: usize,
     scores: &mut [i64; 32],
@@ -111,8 +111,12 @@ fn get_scores(
 
     // 32 subpurposes
     for i in 0..subpurposes_count {
-        let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
-        let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+        //let ix_purpose = subpurpose_purpose_lookup[(i as usize)];
+        //let multiplier = travel_time_relationships[ix_purpose as usize][time_so_far as usize];
+        // the 2 lines above were replaced by the 2 lines below when travel_time_relationships
+        // was changed from 2d to 1d
+        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 4105;
+        let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
 
         // this line could be faster, eg if node_values_1d was an array
         scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;

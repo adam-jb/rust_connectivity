@@ -15,16 +15,18 @@ pub fn read_files_serial() -> (
     Vec<i32>,
     GraphWalk,
     GraphPT,
-    Vec<Vec<i32>>,
+    Vec<i32>,
     [i8; 32],
 )  {
     let now = Instant::now();
-    let node_values_1d = get_node_values_1d();
+    //let node_values_1d = get_node_values_1d();
+    let node_values_1d: Vec<i32> = deserialize_bincoded_file("node_values");
     let start_nodes: Vec<i32> = deserialize_bincoded_file("start_nodes");
     let init_travel_times: Vec<i32> = deserialize_bincoded_file("init_travel_times");
     let graph_walk: GraphWalk = deserialize_bincoded_file("p1_main_nodes");
     let graph_pt: GraphPT = deserialize_bincoded_file("p2_main_nodes");
-    let travel_time_relationships: Vec<Vec<i32>> = deserialize_bincoded_file("travel_time_relationships");
+    //let travel_time_relationships: Vec<Vec<i32>> = deserialize_bincoded_file("travel_time_relationships");
+    let travel_time_relationships: Vec<i32> = deserialize_bincoded_file("travel_time_relationships");
     let subpurpose_purpose_lookup: [i8; 32] = deserialize_bincoded_file("subpurpose_purpose_lookup");
     println!("Serial loading took {:?}", now.elapsed());
     (
@@ -36,18 +38,6 @@ pub fn read_files_serial() -> (
         travel_time_relationships,
         subpurpose_purpose_lookup,
     )
-}
-
-/// todo: make creation of node_values_1d part of serialisation (so it's only run once)
-fn get_node_values_1d() -> Vec<i32> {
-    let node_values: Vec<Vec<i32>> = deserialize_bincoded_file("node_values");
-    let mut node_values_1d: Vec<i32> = Vec::new();
-    for node_vec in &node_values {
-        for specific_val in node_vec {
-            node_values_1d.push(*specific_val);
-        }
-    }
-    node_values_1d
 }
 
 fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {

@@ -17,8 +17,8 @@ pub fn serialise_files() {
     serialise_list("init_travel_times");
     serialise_graph_walk();
     serialise_graph_pt();
-    serialise_list_of_lists("node_values");
-    serialise_list_of_lists("travel_time_relationships");
+    serialise_list("node_values");
+    serialise_list("travel_time_relationships");
     println!("File serialisation took {:?}", now.elapsed());
 }
 
