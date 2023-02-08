@@ -1,27 +1,11 @@
-use arrayvec::ArrayVec;
-use rand::prelude::*;
-use rand::{seq::SliceRandom, thread_rng};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::time::Instant;
 
 use fs_err::File;
-use nanorand::{Rng, WyRand};
 use std::collections::{BinaryHeap, HashMap, HashSet};
-use std::fmt;
 use std::io::{BufReader, BufWriter};
-use std::thread;
-use std::time::Duration;
-
 use rayon::prelude::*;
-
-use google_cloud_storage::client::Client;
-use google_cloud_storage::http::objects::download::Range;
-use google_cloud_storage::http::objects::get::GetObjectRequest;
-use google_cloud_storage::http::objects::upload::UploadObjectRequest;
-use google_cloud_storage::http::Error;
-use google_cloud_storage::sign::SignedURLMethod;
-use google_cloud_storage::sign::SignedURLOptions;
 
 use self::priority_queue::PriorityQueueItem;
 
@@ -62,7 +46,7 @@ struct GraphPT {
 }
 
 fn main() {
-    /// these are for dev only: understanding time to run different
+    // these are for dev only: understanding time to run different
     //assess_cost_of_casting();
     //test_vec_subset_speed();
     //demonstrate_mutable_q();
@@ -81,8 +65,8 @@ fn main() {
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
-    let graph_walk = read_GraphWalk();
-    let graph_pt = read_GraphPT();
+    let graph_walk = readGraphWalk();
+    let graph_pt = readGraphPT();
     let node_values_1d = get_node_values_1d();
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
     //let subpurpose_purpose_lookup = read_serialised_vect8("subpurpose_purpose_lookup");
@@ -97,28 +81,28 @@ fn main() {
     // processes to be inefficient (bc I assume it involves copying objects between memory at some point, 
     // unless all processes can write to a shared section of memory)
     enum ResultType {
-        list_of_lists(Vec<Vec<i32>>),
+        ListOfLists(Vec<Vec<i32>>),
         GraphWalk(GraphWalk),
         GraphPT(GraphPT),
-        list(Vec<i32>),
+        List(Vec<i32>),
     }
 
     let mut files_to_read_vec = Vec::new();
     files_to_read_vec.push(("read_serialised_vect32", "start_nodes"));
     files_to_read_vec.push(("read_serialised_vect32", "init_travel_times"));
-    files_to_read_vec.push(("read_GraphWalk", ""));
-    files_to_read_vec.push(("read_GraphPT", ""));
+    files_to_read_vec.push(("readGraphWalk", ""));
+    files_to_read_vec.push(("readGraphPT", ""));
     files_to_read_vec.push(("read_list_of_lists_vect32", "node_values"));
     files_to_read_vec.push(("read_list_of_lists_vect32", "travel_time_relationships"));
 
     fn execute_read_func_from_tuple(tin: (&str, &str)) -> ResultType {
         return match tin.0 {
             "read_list_of_lists_vect32" => {
-                ResultType::list_of_lists(read_list_of_lists_vect32(tin.1))
+                ResultType::ListOfLists(read_list_of_lists_vect32(tin.1))
             }
-            "read_GraphWalk" => ResultType::GraphWalk(read_GraphWalk()),
-            "read_GraphPT" => ResultType::GraphPT(read_GraphPT()),
-            "read_serialised_vect32" => ResultType::list(read_serialised_vect32(tin.1)),
+            "readGraphWalk" => ResultType::GraphWalk(readGraphWalk()),
+            "readGraphPT" => ResultType::GraphPT(readGraphPT()),
+            "read_serialised_vect32" => ResultType::List(read_serialised_vect32(tin.1)),
             _ => panic!("Unknown function"),
         };
     }
@@ -149,12 +133,13 @@ fn main() {
     for i in 0..100 {
         model_parameters_each_start.push((
             &graph_walk,
-            NodeID((start_nodes[i] as u32)),
+            NodeID(start_nodes[i] as u32),
             &node_values_1d,
             &travel_time_relationships,
             &subpurpose_purpose_lookup,
             &graph_pt,
             trip_start_seconds,
+            Cost(init_travel_times[i] as u16),
         ))
     }
 
@@ -208,6 +193,7 @@ fn floodfill(
         subpurpose_purpose_lookup,
         graph_pt,
         trip_start_seconds,
+        init_travel_time,
     ): (
         &GraphWalk,
         NodeID,
@@ -216,6 +202,7 @@ fn floodfill(
         &[i8; 32],
         &GraphPT,
         i32,
+        Cost,
     ),
 
 ) -> (i32, [i64; 32]) {
@@ -226,12 +213,11 @@ fn floodfill(
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
-        cost: Cost(0),
+        cost: init_travel_time,
         value: start,
     });
     let mut nodes_visited = HashSet::new();
     let mut total_iters = 0;
-    let mut pt_iters = 0;
 
     let mut scores: [i64; 32] = [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -406,13 +392,13 @@ fn serialise_GraphPT() {
     bincode::serialize_into(file, &graph).unwrap();
 }
 
-fn read_GraphWalk() -> GraphWalk {
+fn readGraphWalk() -> GraphWalk {
     let file = BufReader::new(File::open("serialised_data/p1_main_nodes.bin").unwrap());
     let output: GraphWalk = bincode::deserialize_from(file).unwrap();
     output
 }
 
-fn read_GraphPT() -> GraphPT {
+fn readGraphPT() -> GraphPT {
     let file = BufReader::new(File::open("serialised_data/p2_main_nodes.bin").unwrap());
     let output: GraphPT = bincode::deserialize_from(file).unwrap();
     output
