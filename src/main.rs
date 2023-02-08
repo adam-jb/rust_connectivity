@@ -5,6 +5,7 @@ use shared::{NodeID, Cost};
 use floodfill::floodfill; 
 //use serialise_files::serialise_files;
 use read_files::read_files_serial;
+//use read_files::read_files_parallel;
 
 mod priority_queue;
 mod shared;
@@ -19,7 +20,8 @@ fn main() {
 
     //serialise_files();
     let (node_values_1d, start_nodes, init_travel_times, graph_walk, graph_pt, travel_time_relationships, subpurpose_purpose_lookup) = read_files_serial();
-    
+    //read_files_parallel();
+
     let trip_start_seconds = 3600 * 8;
 
     let mut model_parameters_each_start = Vec::new();
