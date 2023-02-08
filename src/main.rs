@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 use smallvec::SmallVec;
 use std::time::Instant;
 
@@ -45,6 +46,7 @@ struct GraphPT {
     edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
 }
 
+
 fn main() {
     // these are for dev only: understanding time to run different
     //assess_cost_of_casting();
@@ -53,24 +55,26 @@ fn main() {
 
     // If you need to regenerate the serialised files, change to if (true)
     if false {
-      serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
-      serialise_list("start_nodes");
-      serialise_list("init_travel_times");
-      serialise_graph_walk();
-      serialise_graph_pt();
-      serialise_list_of_lists("node_values");
-      serialise_list_of_lists("travel_time_relationships");
+        serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
+        serialise_list("start_nodes");
+        serialise_list("init_travel_times");
+        serialise_graph_walk();
+        serialise_graph_pt();
+        serialise_list_of_lists("node_values");
+        serialise_list_of_lists("travel_time_relationships");
     }
 
     let now = Instant::now();
-    let start_nodes = read_serialised_vect32("start_nodes");
-    let init_travel_times = read_serialised_vect32("init_travel_times");
-    let graph_walk = read_graph_walk();
-    let graph_pt = read_graph_pt();
+
     let node_values_1d = get_node_values_1d();
-    let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
-    let subpurpose_purpose_lookup = read_serialised_immutable_array8("subpurpose_purpose_lookup");
-    println!("Loading took {:?}", now.elapsed());
+
+    let start_nodes: Vec<i32> = deserialize_bincoded_file("start_nodes");
+    let init_travel_times: Vec<i32> = deserialize_bincoded_file("init_travel_times");
+    let graph_walk: GraphWalk = deserialize_bincoded_file("p1_main_nodes");
+    let graph_pt: GraphPT = deserialize_bincoded_file("p2_main_nodes");
+    let travel_time_relationships: Vec<Vec<i32>> = deserialize_bincoded_file("travel_time_relationships");
+    let subpurpose_purpose_lookup: [i8; 32] = deserialize_bincoded_file("subpurpose_purpose_lookup");
+    println!("generic loading took {:?}", now.elapsed());
 
     // This section attempts to read as per the above with multiproc.
     // Exclude subpurpose_purpose_lookup as it's tiny
@@ -173,7 +177,7 @@ fn main() {
 
 /// todo: make creation of node_values_1d part of serialisation (so it's only run once)
 fn get_node_values_1d() -> Vec<i32> {
-    let node_values = read_list_of_lists_vect32("node_values");
+    let node_values: Vec<Vec<i32>> = deserialize_bincoded_file("node_values");
     let mut node_values_1d: Vec<i32> = Vec::new();
     for node_vec in &node_values {
         for specific_val in node_vec {
@@ -341,6 +345,12 @@ fn get_pt_connections(
             });
         };
     }
+}
+
+fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
+    let path = format!("serialised_data/{}.bin", filename);
+    let file = BufReader::new(File::open(path).unwrap());
+    bincode::deserialize_from(file).unwrap()
 }
 
 fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
