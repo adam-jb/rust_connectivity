@@ -36,7 +36,7 @@ struct GraphWalk {
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 struct EdgePT {
-    leavingTime: LeavingTime,
+    leavetime: LeavingTime,
     cost: Cost,
 }
 
@@ -56,8 +56,8 @@ fn main() {
       serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
       serialise_list("start_nodes");
       serialise_list("init_travel_times");
-      serialise_GraphWalk();
-      serialise_GraphPT();
+      serialise_graph_walk();
+      serialise_graph_pt();
       serialise_list_of_lists("node_values");
       serialise_list_of_lists("travel_time_relationships");
     }
@@ -65,11 +65,10 @@ fn main() {
     let now = Instant::now();
     let start_nodes = read_serialised_vect32("start_nodes");
     let init_travel_times = read_serialised_vect32("init_travel_times");
-    let graph_walk = readGraphWalk();
-    let graph_pt = readGraphPT();
+    let graph_walk = read_graph_walk();
+    let graph_pt = read_graph_pt();
     let node_values_1d = get_node_values_1d();
     let travel_time_relationships = read_list_of_lists_vect32("travel_time_relationships");
-    //let subpurpose_purpose_lookup = read_serialised_vect8("subpurpose_purpose_lookup");
     let subpurpose_purpose_lookup = read_serialised_immutable_array8("subpurpose_purpose_lookup");
     println!("Loading took {:?}", now.elapsed());
 
@@ -90,8 +89,8 @@ fn main() {
     let mut files_to_read_vec = Vec::new();
     files_to_read_vec.push(("read_serialised_vect32", "start_nodes"));
     files_to_read_vec.push(("read_serialised_vect32", "init_travel_times"));
-    files_to_read_vec.push(("readGraphWalk", ""));
-    files_to_read_vec.push(("readGraphPT", ""));
+    files_to_read_vec.push(("read_graph_walk", ""));
+    files_to_read_vec.push(("read_graph_pt", ""));
     files_to_read_vec.push(("read_list_of_lists_vect32", "node_values"));
     files_to_read_vec.push(("read_list_of_lists_vect32", "travel_time_relationships"));
 
@@ -100,8 +99,8 @@ fn main() {
             "read_list_of_lists_vect32" => {
                 ResultType::ListOfLists(read_list_of_lists_vect32(tin.1))
             }
-            "readGraphWalk" => ResultType::GraphWalk(readGraphWalk()),
-            "readGraphPT" => ResultType::GraphPT(readGraphPT()),
+            "read_graph_walk" => ResultType::GraphWalk(read_graph_walk()),
+            "read_graph_pt" => ResultType::GraphPT(read_graph_pt()),
             "read_serialised_vect32" => ResultType::List(read_serialised_vect32(tin.1)),
             _ => panic!("Unknown function"),
         };
@@ -207,7 +206,7 @@ fn floodfill(
 
 ) -> (i32, [i64; 32]) {
 
-    const time_limit: Cost = Cost(3600);
+    let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
     let now = Instant::now();
 
@@ -260,7 +259,6 @@ fn floodfill(
         // will be 1 if it does, and 0 if it doesn't
         if graph_walk.edges_per_node[&(current.value.0 as usize)][0].cost == Cost(1) {
             get_pt_connections(
-                &graph_walk,
                 &graph_pt,
                 current.cost.0,
                 &mut queue,
@@ -301,7 +299,6 @@ fn get_scores(
 }
 
 fn get_pt_connections(
-    graph_walk: &GraphWalk,
     graph_pt: &GraphPT,
     time_so_far: u16,
     queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
@@ -319,7 +316,7 @@ fn get_pt_connections(
     for edge in &graph_pt.edges_per_node[&(current_node.0 as usize)][1..] {
         if time_of_arrival_current_node <= edge.cost.0 as u32 {
             next_leaving_time = edge.cost.0;
-            journey_time = edge.leavingTime.0 as u32;
+            journey_time = edge.leavetime.0 as u32;
             found_next_service = 1;
             break;
         }
@@ -335,7 +332,7 @@ fn get_pt_connections(
             //// Notice this uses 'leavingTime' as first 'edge' for each node stores ID
             //// of next node: this is legacy from our matrix-based approach in python
             let destination_node = &graph_pt.edges_per_node[&(current_node.0 as usize)][0]
-                .leavingTime
+                .leavetime
                 .0;
 
             queue.push(PriorityQueueItem {
@@ -365,7 +362,7 @@ fn serialise_list_of_lists(filename: &str) {
     println!("Serialised to {}", outpath);
 }
 
-fn serialise_GraphPT() {
+fn serialise_graph_pt() {
     let contents = fs_err::read_to_string("data/p2_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
@@ -381,7 +378,7 @@ fn serialise_GraphPT() {
         let mut edges = SmallVec::new();
         for array in input_edges {
             edges.push(EdgePT {
-                leavingTime: LeavingTime(array[1] as u32),
+                leavetime: LeavingTime(array[1] as u32),
                 cost: Cost(array[0] as u16),
             });
         }
@@ -392,19 +389,19 @@ fn serialise_GraphPT() {
     bincode::serialize_into(file, &graph).unwrap();
 }
 
-fn readGraphWalk() -> GraphWalk {
+fn read_graph_walk() -> GraphWalk {
     let file = BufReader::new(File::open("serialised_data/p1_main_nodes.bin").unwrap());
     let output: GraphWalk = bincode::deserialize_from(file).unwrap();
     output
 }
 
-fn readGraphPT() -> GraphPT {
+fn read_graph_pt() -> GraphPT {
     let file = BufReader::new(File::open("serialised_data/p2_main_nodes.bin").unwrap());
     let output: GraphPT = bincode::deserialize_from(file).unwrap();
     output
 }
 
-fn serialise_GraphWalk() {
+fn serialise_graph_walk() {
     let contents = fs_err::read_to_string("data/p1_main_nodes.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
@@ -469,108 +466,6 @@ fn read_serialised_immutable_array8(filename: &str) -> [i8; 32] {
     output
 }
 
-fn read_serialised_vect8(filename: &str) -> Vec<i8> {
-    let inpath = format!("serialised_data/{}.bin", filename);
-    let file = BufReader::new(File::open(inpath).unwrap());
-    let output: Vec<i8> = bincode::deserialize_from(file).unwrap();
-    output
-}
-
 fn print_type_of<T>(_: &T) {
     println!("{}", std::any::type_name::<T>())
-}
-
-fn test_vec_subset_speed() {
-    let mut VoV = Vec::new();
-
-    //let mut VoV: <Vec<Vec<i32>>;
-    for _ in 1..1000 {
-        let mut scores: Vec<i64> = Vec::new();
-        for i in 1..2000 {
-            scores.push(0);
-        }
-        VoV.push(scores);
-    }
-    println!("VoV len: {:?}", VoV.len());
-    println!("VoV inner len: {:?}", VoV[0].len());
-
-    let now = Instant::now();
-    let mut topps: i32 = 0;
-    let mut iters: i32 = 0;
-    for i in 0..999 {
-        for k in 0..1999 {
-            VoV[i][k];
-            //iters += 1;
-        }
-    }
-    println!("VoV took {:?}", now.elapsed());
-
-    let now = Instant::now();
-    let mut topps: i64 = 0;
-    let mut iters: i32 = 0;
-    for i in 0..999 {
-        for k in 0..1999 {
-            topps += VoV[i][k];
-            //iters += 1;
-        }
-    }
-    println!("VoV took {:?}\ttopps: {}", now.elapsed(), topps);
-
-    let now = Instant::now();
-    let mut topps: i64 = 0;
-    let mut iters: i32 = 0;
-    for i in 0..999 {
-        for k in 0..1999 {
-            topps += VoV[i][k];
-            iters += 1;
-        }
-    }
-    println!("VoV took {:?}\t with iters {}", now.elapsed(), iters);
-    // all the above shows assigning to 'iters' is much more time intensive than subsetting:
-    // dont bother with any other data structure
-}
-
-fn assess_cost_of_casting() {
-    let mut VoV = Vec::new();
-
-    //let mut VoV: <Vec<Vec<i32>>;
-    for _ in 1..1000 {
-        let mut scores: Vec<i64> = Vec::new();
-        for i in 1..2000 {
-            scores.push(0);
-        }
-        VoV.push(scores);
-    }
-    let now = Instant::now();
-    let mut topps: i64 = 1;
-    let mut iters: i32 = 0;
-    for i in 0..999 {
-        for k in 0..1999 {
-            VoV[i][k] += topps;
-            //iters += 1;
-        }
-    }
-    println!("VoV without casting took {:?}", now.elapsed());
-
-    let now = Instant::now();
-    let mut topps: i64 = 1;
-    let mut iters: i32 = 0;
-    for i in 0..999 {
-        for k in 0..1999 {
-            VoV[i][k] += topps;
-            //iters += 1;
-        }
-    }
-    println!("VoV WITH casting took {:?}, {}", now.elapsed(), VoV[5][5]);
-
-    let now = Instant::now();
-    let mut topps: i32 = 1;
-    let mut iters: i32 = 0;
-    for i in 0..999 {
-        for k in 0..1999 {
-            //VoV[i][k] += topps as i32;
-            iters += topps as i32;
-        }
-    }
-    println!("Topps WITH casting took {:?}, {}", now.elapsed(), iters);
 }
