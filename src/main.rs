@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
 use smallvec::SmallVec;
 use std::time::Instant;
@@ -9,43 +8,13 @@ use std::io::{BufReader, BufWriter};
 use rayon::prelude::*;
 
 use self::priority_queue::PriorityQueueItem;
+use shared::{NodeID, Cost, LeavingTime, EdgeWalk, GraphWalk, EdgePT, GraphPT};
 
 mod priority_queue;
+mod shared;
 
 //#[global_allocator]
 //static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
-struct NodeID(u32);
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-struct Cost(u16);
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
-struct LeavingTime(u32);
-
-#[derive(Serialize, Deserialize, Clone, Copy)]
-struct EdgeWalk {
-    to: NodeID,
-    cost: Cost,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct GraphWalk {
-    edges_per_node: HashMap<usize, SmallVec<[EdgeWalk; 4]>>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Copy)]
-struct EdgePT {
-    leavetime: LeavingTime,
-    cost: Cost,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-struct GraphPT {
-    edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
-}
-
 
 fn main() {
     // these are for dev only: understanding time to run different
@@ -466,13 +435,6 @@ fn read_serialised_vect32(filename: &str) -> Vec<i32> {
     let inpath = format!("serialised_data/{}.bin", filename);
     let file = BufReader::new(File::open(inpath).unwrap());
     let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
-    output
-}
-
-fn read_serialised_immutable_array8(filename: &str) -> [i8; 32] {
-    let inpath = format!("serialised_data/{}.bin", filename);
-    let file = BufReader::new(File::open(inpath).unwrap());
-    let output: [i8; 32] = bincode::deserialize_from(file).unwrap();
     output
 }
 
