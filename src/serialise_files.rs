@@ -6,7 +6,7 @@ use fs_err::File;
 use std::collections::{HashMap};
 use std::io::{BufWriter};
 
-use crate::shared::{NodeID, Cost, GraphWalk, GraphPT};
+use crate::shared::{NodeID, Cost, GraphWalk, GraphPT, EdgeWalk, EdgePT, LeavingTime};
 
 
 
