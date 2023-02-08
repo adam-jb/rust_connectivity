@@ -9,33 +9,21 @@ use rayon::prelude::*;
 
 use shared::{NodeID, Cost, LeavingTime, EdgeWalk, GraphWalk, EdgePT, GraphPT};
 use floodfill::floodfill; 
+use serialise_files::serialise_files;
 
 mod priority_queue;
 mod shared;
 mod floodfill; 
+mod serialise_files;
 
 //#[global_allocator]
 //static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 fn main() {
-    // these are for dev only: understanding time to run different
-    //assess_cost_of_casting();
-    //test_vec_subset_speed();
-    //demonstrate_mutable_q();
 
-    // If you need to regenerate the serialised files, change to if (true)
-    if false {
-        serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
-        serialise_list("start_nodes");
-        serialise_list("init_travel_times");
-        serialise_graph_walk();
-        serialise_graph_pt();
-        serialise_list_of_lists("node_values");
-        serialise_list_of_lists("travel_time_relationships");
-    }
+    // serialise_files();
 
     let now = Instant::now();
-
     let node_values_1d = get_node_values_1d();
     let start_nodes: Vec<i32> = deserialize_bincoded_file("start_nodes");
     let init_travel_times: Vec<i32> = deserialize_bincoded_file("init_travel_times");
@@ -142,142 +130,4 @@ fn main() {
         now.elapsed(),
         parallel_res[0]
     );
-}
-
-/// todo: make creation of node_values_1d part of serialisation (so it's only run once)
-fn get_node_values_1d() -> Vec<i32> {
-    let node_values: Vec<Vec<i32>> = deserialize_bincoded_file("node_values");
-    let mut node_values_1d: Vec<i32> = Vec::new();
-    for node_vec in &node_values {
-        for specific_val in node_vec {
-            node_values_1d.push(*specific_val);
-        }
-    }
-    node_values_1d
-}
-
-fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
-    let path = format!("serialised_data/{}.bin", filename);
-    let file = BufReader::new(File::open(path).unwrap());
-    bincode::deserialize_from(file).unwrap()
-}
-
-fn read_list_of_lists_vect32(filename: &str) -> Vec<Vec<i32>> {
-    let inpath = format!("serialised_data/{}.bin", filename);
-    let file = BufReader::new(File::open(inpath).unwrap());
-    let output: Vec<Vec<i32>> = bincode::deserialize_from(file).unwrap();
-    output
-}
-
-fn serialise_list_of_lists(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<Vec<i32>> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
-fn serialise_graph_pt() {
-    let contents = fs_err::read_to_string("data/p2_main_nodes.json").unwrap();
-
-    // to do: check meaning of the '2' in [usize; 2]
-    let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
-
-    // make empty dict
-    let mut graph = GraphPT {
-        edges_per_node: HashMap::new(),
-    };
-
-    // populate dict
-    for (from, input_edges) in input {
-        let mut edges = SmallVec::new();
-        for array in input_edges {
-            edges.push(EdgePT {
-                leavetime: LeavingTime(array[1] as u32),
-                cost: Cost(array[0] as u16),
-            });
-        }
-        graph.edges_per_node.insert(from, edges);
-    }
-
-    let file = BufWriter::new(File::create("serialised_data/p2_main_nodes.bin").unwrap());
-    bincode::serialize_into(file, &graph).unwrap();
-}
-
-fn read_graph_walk() -> GraphWalk {
-    let file = BufReader::new(File::open("serialised_data/p1_main_nodes.bin").unwrap());
-    let output: GraphWalk = bincode::deserialize_from(file).unwrap();
-    output
-}
-
-fn read_graph_pt() -> GraphPT {
-    let file = BufReader::new(File::open("serialised_data/p2_main_nodes.bin").unwrap());
-    let output: GraphPT = bincode::deserialize_from(file).unwrap();
-    output
-}
-
-fn serialise_graph_walk() {
-    let contents = fs_err::read_to_string("data/p1_main_nodes.json").unwrap();
-
-    // to do: check meaning of the '2' in [usize; 2]
-    let input: HashMap<usize, Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
-
-    // make empty dict
-    let mut graph = GraphWalk {
-        edges_per_node: HashMap::new(),
-    };
-
-    // populate dict
-    for (from, input_edges) in input {
-        let mut edges = SmallVec::new();
-        for array in input_edges {
-            edges.push(EdgeWalk {
-                to: NodeID(array[1] as u32),
-                cost: Cost(array[0] as u16),
-            });
-        }
-        graph.edges_per_node.insert(from, edges);
-    }
-
-    let file = BufWriter::new(File::create("serialised_data/p1_main_nodes.bin").unwrap());
-    bincode::serialize_into(file, &graph).unwrap();
-}
-
-fn serialise_list(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = fs_err::read_to_string(&inpath).unwrap();
-    let output: Vec<i32> = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
-fn serialise_list_immutable_array_i8(filename: &str) {
-    let inpath = format!("data/{}.json", filename);
-    let contents = std::fs::read_to_string(&inpath).unwrap();
-    let output: [i8; 32] = serde_json::from_str(&contents).unwrap();
-    println!("Read from {}", inpath);
-
-    let outpath = format!("serialised_data/{}.bin", filename);
-    let file = BufWriter::new(File::create(&outpath).unwrap());
-    bincode::serialize_into(file, &output).unwrap();
-    println!("Serialised to {}", outpath);
-}
-
-fn read_serialised_vect32(filename: &str) -> Vec<i32> {
-    let inpath = format!("serialised_data/{}.bin", filename);
-    let file = BufReader::new(File::open(inpath).unwrap());
-    let output: Vec<i32> = bincode::deserialize_from(file).unwrap();
-    output
-}
-
-fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>())
 }
