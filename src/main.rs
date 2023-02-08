@@ -20,7 +20,6 @@ fn main() {
     //serialise_files();
     let (node_values_1d, start_nodes, init_travel_times, graph_walk, graph_pt, travel_time_relationships, subpurpose_purpose_lookup) = read_files_serial();
     
-
     let trip_start_seconds = 3600 * 8;
 
     let mut model_parameters_each_start = Vec::new();
@@ -65,3 +64,5 @@ fn main() {
         parallel_res[0]
     );
 }
+
+
