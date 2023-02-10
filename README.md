@@ -4,6 +4,8 @@ Run `./download_input.sh` once to download input data. Uncomment serialise_files
 
 Run `./download_input_mac.sh` if on a mac
 
+The current version hosts an API, which accepts start node IDs and initial travel times. It requires about 22gb of RAM due to inefficient copying of vectors during initialisation
+
 
 # On querying the API
 
