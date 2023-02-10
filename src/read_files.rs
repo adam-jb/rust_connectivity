@@ -1,13 +1,12 @@
-use serde::de::DeserializeOwned;
-use std::time::Instant;
 use fs_err::File;
-use std::io::{BufReader};
+use serde::de::DeserializeOwned;
 use smallvec::SmallVec;
+use std::io::BufReader;
+use std::time::Instant;
 
 //use rayon::prelude::*;
 
-use crate::shared::{GraphWalk, GraphPT, EdgeWalk, EdgePT};
-
+use crate::shared::{EdgePT, EdgeWalk, GraphPT, GraphWalk};
 
 pub fn read_files_serial() -> (
     Vec<i32>,
@@ -17,17 +16,21 @@ pub fn read_files_serial() -> (
     Vec<SmallVec<[EdgePT; 4]>>,
     Vec<i32>,
     [i8; 32],
-)  {
+) {
     let now = Instant::now();
     let node_values_1d: Vec<i32> = deserialize_bincoded_file("padded_node_values_8am");
     let start_nodes: Vec<i32> = deserialize_bincoded_file("start_nodes");
     let init_travel_times: Vec<i32> = deserialize_bincoded_file("init_travel_times");
     //let graph_walk: GraphWalk = deserialize_bincoded_file("p1_main_nodes_vector_8am");
     //let graph_pt: GraphPT = deserialize_bincoded_file("p2_main_nodes_vector_8am");
-    let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> = deserialize_bincoded_file("p1_main_nodes_vector_8am");
-    let graph_pt: Vec<SmallVec<[EdgePT; 4]>> = deserialize_bincoded_file("p2_main_nodes_vector_8am");
-    let travel_time_relationships: Vec<i32> = deserialize_bincoded_file("travel_time_relationships");
-    let subpurpose_purpose_lookup: [i8; 32] = deserialize_bincoded_file("subpurpose_purpose_lookup");
+    let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> =
+        deserialize_bincoded_file("p1_main_nodes_vector_8am");
+    let graph_pt: Vec<SmallVec<[EdgePT; 4]>> =
+        deserialize_bincoded_file("p2_main_nodes_vector_8am");
+    let travel_time_relationships: Vec<i32> =
+        deserialize_bincoded_file("travel_time_relationships");
+    let subpurpose_purpose_lookup: [i8; 32] =
+        deserialize_bincoded_file("subpurpose_purpose_lookup");
     println!("Serial loading took {:?}", now.elapsed());
     (
         node_values_1d,
@@ -46,9 +49,6 @@ fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
     bincode::deserialize_from(file).unwrap()
 }
 
-
-
-
 // 2nd attempt: not got strings / mapping working with rayon
 /*
 pub fn read_files_parallel() {
@@ -61,7 +61,7 @@ pub fn read_files_parallel() {
     file_names.push(String::from("p2_main_nodes"));
     file_names.push(String::from("travel_time_relationships"));
     file_names.push(String::from("subpurpose_purpose_lookup"));
-  
+
 
     let now = Instant::now();
     let inputs_map  = file_names
@@ -80,9 +80,6 @@ pub fn read_files_parallel() {
 }
 */
 
-
-
-
 // original attempt
 /*
 pub fn read_files_parallel() {
@@ -91,7 +88,7 @@ pub fn read_files_parallel() {
     // ResultType allows one func to return different types of objects: right now
     // am stuck with a hashmap of ResultType objects, each of which contains an object I want to be
     // accessible normally (ie, by calling the variable name, with no hashmap involved). I expect spawning
-    // processes to be inefficient (bc I assume it involves copying objects between memory at some point, 
+    // processes to be inefficient (bc I assume it involves copying objects between memory at some point,
     // unless all processes can write to a shared section of memory)
     enum ResultType {
         ListOfLists(Vec<Vec<i32>>),

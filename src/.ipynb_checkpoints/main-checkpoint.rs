@@ -1,62 +1,74 @@
-use std::time::Instant;
 use rayon::prelude::*;
+use std::time::Instant;
 
-use shared::{NodeID, Cost};
-use floodfill::floodfill; 
+use crate::shared::{Cost, GraphPT, GraphWalk, NodeID, EdgePT, EdgeWalk};
+use smallvec::SmallVec;
+
+use floodfill::floodfill;
+use read_files::{read_files_serial};
+use actix_web::{get, post, web, App, HttpServer};
+use serde::{Deserialize, Serialize};
 use serialise_files::serialise_files;
-use read_files::read_files_serial;
 
+mod floodfill;
 mod priority_queue;
 mod shared;
-mod floodfill; 
-mod serialise_files;
 mod read_files;
+mod serialise_files;
 
 //#[global_allocator]
 //static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
-fn main() {
+// This struct represents state
+struct AppState {
+    node_values_1d: Vec<i32>,
+    trip_start_seconds: i32,
+    travel_time_relationships: Vec<i32>,
+    subpurpose_purpose_lookup: [i8; 32],
+    graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
+}
 
-    //serialise_files();
-    
-    let (node_values_1d, start_nodes, init_travel_times, graph_walk, graph_pt, travel_time_relationships, subpurpose_purpose_lookup) = read_files_serial();
-    
+#[derive(Deserialize)]
+struct UserInputJSON {
+    start_nodes_user_input: Vec<i32>,
+    init_travel_times_user_input: Vec<i32>,
+}
 
-    let trip_start_seconds = 3600 * 8;
+#[derive(Serialize)]
+struct PostOutputJSON {
+    all: Vec<(i32, u32, [i64; 32])>,
+}
 
+#[get("/")]
+async fn index(data: web::Data<AppState>) -> String {
+    format!(
+        "App is listening! Len of node_values_1d {}",
+        &data.node_values_1d.len()
+    )
+}
+
+#[post("/floodfill_pt/")]
+async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
+    // create vector holding a tuple of params for each run of floodfill()
+    println!("started api floodfill");
     let mut model_parameters_each_start = Vec::new();
-    for i in 0..100 {
+    for i in 0..input.start_nodes_user_input.len() {
         model_parameters_each_start.push((
-            &graph_walk,
-            NodeID(start_nodes[i] as u32),
-            &node_values_1d,
-            &travel_time_relationships,
-            &subpurpose_purpose_lookup,
-            &graph_pt,
-            trip_start_seconds,
-            Cost(init_travel_times[i] as u16),
+            &data.graph_walk,
+            NodeID(input.start_nodes_user_input[i] as u32),
+            &data.node_values_1d,
+            &data.travel_time_relationships,
+            &data.subpurpose_purpose_lookup,
+            &data.graph_pt,
+            data.trip_start_seconds,
+            Cost(input.init_travel_times_user_input[i] as u16),
         ))
     }
 
+    // run for all in parallel
     let now = Instant::now();
-    let mut score_store = Vec::new();
-    let mut total_iters_counter = 0;
-    for input in &model_parameters_each_start {
-        let (total_iters, scores) = floodfill(*input);
-
-        total_iters_counter += total_iters;
-        score_store.push(scores);
-    }
-    println!(
-        "Calculating routes took {:?}\nReached {} nodes in total",
-        now.elapsed(),
-        total_iters_counter
-    );
-    println!("Score from last start node {:?}", score_store.pop());
-
-    // parallel speed test
-    let now = Instant::now();
-    let parallel_res: Vec<(i32, [i64; 32])> = model_parameters_each_start
+    let parallel_res: Vec<(i32, u32, [i64; 32])> = model_parameters_each_start
         .par_iter()
         .map(|input| floodfill(*input))
         .collect();
@@ -65,4 +77,46 @@ fn main() {
         now.elapsed(),
         parallel_res[0]
     );
+
+    return serde_json::to_string(&parallel_res).unwrap();
 }
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let trip_start_seconds = 3600 * 8;
+
+    //serialise_files();
+
+    let (
+        node_values_1d,
+        start_nodes,
+        init_travel_times,
+        graph_walk,
+        graph_pt,
+        travel_time_relationships,
+        subpurpose_purpose_lookup,
+    ) = read_files_serial();
+
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(AppState {
+                node_values_1d: node_values_1d.to_vec(),
+                trip_start_seconds: trip_start_seconds,
+                travel_time_relationships: travel_time_relationships.to_vec(),
+                subpurpose_purpose_lookup: subpurpose_purpose_lookup,
+                graph_walk: graph_walk.to_vec(),
+                graph_pt: graph_pt.to_vec(),
+                // start_nodes and init_travel_times are POSTed by user
+                //start_nodes: start_nodes.to_vec(),
+                //init_travel_times: init_travel_times.to_vec(),
+            }))
+            .service(index)
+            .service(floodfill_pt)
+    })
+    .bind(("127.0.0.1", 7328))?
+    .run()
+    .await
+
+}
+

@@ -51,6 +51,7 @@ async fn index(data: web::Data<AppState>) -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     // create vector holding a tuple of params for each run of floodfill()
+    println!("started api floodfill");
     let mut model_parameters_each_start = Vec::new();
     for i in 0..input.start_nodes_user_input.len() {
         model_parameters_each_start.push((
@@ -111,9 +112,9 @@ async fn main() -> std::io::Result<()> {
                 //init_travel_times: init_travel_times.to_vec(),
             }))
             .service(index)
-            //.service(floodfill_pt)
+            .service(floodfill_pt)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 7328))?
     .run()
     .await
 
