@@ -23,7 +23,10 @@ mod shared;
 struct AppState {
     node_values_1d: Vec<i32>,
     trip_start_seconds: i32,
-    travel_time_relationships: Vec<i32>,
+    travel_time_relationships_7: Vec<i32>,
+    travel_time_relationships_10: Vec<i32>,
+    travel_time_relationships_16: Vec<i32>,
+    travel_time_relationships_19: Vec<i32>,
     subpurpose_purpose_lookup: [i8; 32],
     graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
@@ -100,8 +103,6 @@ async fn main() -> std::io::Result<()> {
 
     let (
         node_values_1d,
-        start_nodes,
-        init_travel_times,
         graph_walk,
         graph_pt,
         travel_time_relationships_7,
@@ -123,9 +124,6 @@ async fn main() -> std::io::Result<()> {
                 subpurpose_purpose_lookup: subpurpose_purpose_lookup,
                 graph_walk: graph_walk.to_vec(),
                 graph_pt: graph_pt.to_vec(),
-                // start_nodes and init_travel_times are POSTed by user
-                //start_nodes: start_nodes.to_vec(),
-                //init_travel_times: init_travel_times.to_vec(),
             }))
             .service(index)
             .service(floodfill_pt)

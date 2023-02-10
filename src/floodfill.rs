@@ -1,5 +1,4 @@
 use std::collections::{BinaryHeap, HashSet};
-use std::time::Instant;
 
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};

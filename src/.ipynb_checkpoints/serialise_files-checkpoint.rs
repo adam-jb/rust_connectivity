@@ -9,8 +9,6 @@ use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID};
 pub fn serialise_files() {
     let now = Instant::now();
     serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
-    serialise_list("start_nodes");
-    serialise_list("init_travel_times");
     serialise_graph_walk_vector();
     serialise_graph_pt_vector();
     serialise_list("padded_node_values_6am");
@@ -22,10 +20,10 @@ pub fn serialise_files() {
 }
 
 fn serialise_graph_walk_vector() {
-    let contents = fs_err::read_to_string("data/p1_main_nodes_list_8am.json").unwrap();
+    let contents = fs_err::read_to_string("data/p1_main_nodes_list_6am.json").unwrap();
 
     let input: Vec<Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
-
+    
     let mut graph_walk_vec = Vec::new();
     for input_edges in input.iter() {
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
@@ -39,12 +37,12 @@ fn serialise_graph_walk_vector() {
     }
 
     let file =
-        BufWriter::new(File::create("serialised_data/p1_main_nodes_vector_8am.bin").unwrap());
+        BufWriter::new(File::create("serialised_data/p1_main_nodes_vector_6am.bin").unwrap());
     bincode::serialize_into(file, &graph_walk_vec).unwrap();
 }
 
 fn serialise_graph_pt_vector() {
-    let contents = fs_err::read_to_string("data/p2_main_nodes_list_8am.json").unwrap();
+    let contents = fs_err::read_to_string("data/p2_main_nodes_list_6am.json").unwrap();
 
     // to do: check meaning of the '2' in [usize; 2]
     let input: Vec<Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
@@ -62,7 +60,7 @@ fn serialise_graph_pt_vector() {
     }
 
     let file =
-        BufWriter::new(File::create("serialised_data/p2_main_nodes_vector_8am.bin").unwrap());
+        BufWriter::new(File::create("serialised_data/p2_main_nodes_vector_6am.bin").unwrap());
     bincode::serialize_into(file, &graph_pt_vec).unwrap();
 }
 
