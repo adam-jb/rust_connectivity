@@ -1,3 +1,5 @@
 # Notes on running
 
-Run `./download_input.sh` once to download input data. Edit `src/main.rs` and change the `if false` bit to `if true` to run the input conversion. (Then revert the change to avoid doing it every time)
+Run `./download_input.sh` once to download input data. Uncomment serialise_files() in main.rs to run
+
+Run `./download_input_mac.sh` if on a mac
