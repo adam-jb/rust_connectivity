@@ -43,7 +43,6 @@ pub fn floodfill(
     });
     let mut nodes_visited = HashSet::new();
     let mut total_iters = 0;
-    let mut pt_iters = 0;
 
     let mut scores: [i64; 32] = [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -57,7 +56,7 @@ pub fn floodfill(
 
         nodes_visited.insert(current.value);
 
-        // if the node id is not a p2 node (ie, over that reference ID), then it will have an associated value
+        // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
         if current.value.0 >= count_nodes_no_value {
             get_scores(
                 current.value.0,
@@ -72,12 +71,11 @@ pub fn floodfill(
 
         // Finding adjacent walk nodes
         // skip 1st edge as it has info on whether node also has a PT service
-        //for edge in &graph_walk.edges_per_node[(current.value.0 as usize)][1..] {
         for edge in &graph_walk[(current.value.0 as usize)][1..] {
             let new_cost = Cost(current.cost.0 + edge.cost.0);
             if new_cost < time_limit {
                 queue.push(PriorityQueueItem {
-                    cost: new_cost, //Cost(current.cost.0 + edge.cost.0),
+                    cost: new_cost,
                     value: edge.to,
                 });
             }
@@ -85,7 +83,6 @@ pub fn floodfill(
 
         // if node has a timetable associated with it: the first value in the first 'edge'
         // will be 1 if it does, and 0 if it doesn't
-        //if graph_walk.edges_per_node[(current.value.0 as usize)][0].cost == Cost(1) {
         if graph_walk[(current.value.0 as usize)][0].cost == Cost(1) {
             get_pt_connections(
                 &graph_pt,
@@ -94,14 +91,11 @@ pub fn floodfill(
                 time_limit,
                 trip_start_seconds,
                 &current.value,
-                &mut pt_iters, 
             );
         }
 
         total_iters += 1;
     }
-    println!("total_iters: {}\tpt_iters: {}\tstart {}\t{:?}", total_iters, pt_iters, start.0, now.elapsed());
-
     return (total_iters, start.0, scores);
 }
 
@@ -129,26 +123,25 @@ fn get_scores(
 }
 
 fn get_pt_connections(
-    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>, //&GraphPT,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     time_so_far: u16,
     queue: &mut BinaryHeap<PriorityQueueItem<Cost, NodeID>>,
     time_limit: Cost,
     trip_start_seconds: i32,
     current_node: &NodeID,
-    pt_iters: &mut i32,
 ) {
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 
     // find time next service leaves
     let mut found_next_service = 0;
-    let mut journey_time: u32 = 0;
+    let mut journey_time: u16 = 0;
     let mut next_leaving_time = 0;
-    //for edge in &graph_pt.edges_per_node[(current_node.0 as usize)][1..] {
+
     for edge in &graph_pt[(current_node.0 as usize)][1..] {
-        if time_of_arrival_current_node <= edge.cost.0 as u32 {
-            next_leaving_time = edge.cost.0;
-            journey_time = edge.leavetime.0 as u32;
+        if time_of_arrival_current_node <= edge.leavetime.0 as u32 {
+            next_leaving_time = edge.leavetime.0;
+            journey_time = edge.cost.0;
             found_next_service = 1;
             break;
         }
@@ -163,15 +156,12 @@ fn get_pt_connections(
         if arrival_time_next_stop < time_limit.0 as u32 {
             //// Notice this uses 'leavingTime' as first 'edge' for each node stores ID
             //// of next node: this is legacy from our matrix-based approach in python
-            //let destination_node = &graph_pt.edges_per_node[(current_node.0 as usize)][0]
             let destination_node = &graph_pt[(current_node.0 as usize)][0].leavetime.0;
 
             queue.push(PriorityQueueItem {
                 cost: Cost(arrival_time_next_stop as u16),
                 value: NodeID(*destination_node as u32),
             });
-            
-            *pt_iters += 1;
         };
     }
 }

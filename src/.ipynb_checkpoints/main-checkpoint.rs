@@ -1,20 +1,20 @@
 use rayon::prelude::*;
 use std::time::Instant;
 
-use crate::shared::{Cost, GraphPT, GraphWalk, NodeID, EdgePT, EdgeWalk};
+use crate::shared::{Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID};
 use smallvec::SmallVec;
 
-use floodfill::floodfill;
-use read_files::{read_files_serial};
 use actix_web::{get, post, web, App, HttpServer};
+use floodfill::floodfill;
+use read_files::read_files_serial;
 use serde::{Deserialize, Serialize};
 use serialise_files::serialise_files;
 
 mod floodfill;
 mod priority_queue;
-mod shared;
 mod read_files;
 mod serialise_files;
+mod shared;
 
 //#[global_allocator]
 //static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
@@ -50,9 +50,8 @@ async fn index(data: web::Data<AppState>) -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-
     // todo: update graphs in response to new PT routes
-    
+
     println!("started api floodfill");
     let mut model_parameters_each_start = Vec::new();
     for i in 0..input.start_nodes_user_input.len() {
@@ -79,7 +78,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         now.elapsed(),
         parallel_res[0]
     );
-    
+
     // todo: remove anything added to graphs in response to new routes
 
     return serde_json::to_string(&parallel_res).unwrap();
@@ -101,7 +100,6 @@ async fn main() -> std::io::Result<()> {
         subpurpose_purpose_lookup,
     ) = read_files_serial();
 
-
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(AppState {
@@ -121,6 +119,4 @@ async fn main() -> std::io::Result<()> {
     .bind(("127.0.0.1", 7328))?
     .run()
     .await
-
 }
-

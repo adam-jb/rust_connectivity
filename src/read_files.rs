@@ -21,8 +21,6 @@ pub fn read_files_serial() -> (
     let node_values_1d: Vec<i32> = deserialize_bincoded_file("padded_node_values_8am");
     let start_nodes: Vec<i32> = deserialize_bincoded_file("start_nodes");
     let init_travel_times: Vec<i32> = deserialize_bincoded_file("init_travel_times");
-    //let graph_walk: GraphWalk = deserialize_bincoded_file("p1_main_nodes_vector_8am");
-    //let graph_pt: GraphPT = deserialize_bincoded_file("p2_main_nodes_vector_8am");
     let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> =
         deserialize_bincoded_file("p1_main_nodes_vector_8am");
     let graph_pt: Vec<SmallVec<[EdgePT; 4]>> =
