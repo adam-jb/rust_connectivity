@@ -1,13 +1,10 @@
-
 use smallvec::SmallVec;
 use std::time::Instant;
 
 use fs_err::File;
-use std::io::{BufWriter};
+use std::io::BufWriter;
 
-use crate::shared::{NodeID, Cost, GraphWalk, GraphPT, EdgeWalk, EdgePT, LeavingTime};
-
-
+use crate::shared::{Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, LeavingTime, NodeID};
 
 pub fn serialise_files() {
     let now = Instant::now();
@@ -27,24 +24,27 @@ fn serialise_graph_walk_vector() {
     let input: Vec<Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
 
     // make empty graph
+    /*
     let mut graph = GraphWalk {
         edges_per_node: Vec::new(), //HashMap::new(),
     };
-
-    // populate graph
+    */
+    let mut graph_walk_vec = Vec::new();
     for input_edges in input.iter() {
-        let mut edges = SmallVec::new();
+        let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
         for array in input_edges {
             edges.push(EdgeWalk {
                 to: NodeID(array[1] as u32),
                 cost: Cost(array[0] as u16),
             });
         }
-        graph.edges_per_node.push(edges);
+        graph_walk_vec.push(edges);
     }
 
-    let file = BufWriter::new(File::create("serialised_data/p1_main_nodes_vector_8am.bin").unwrap());
-    bincode::serialize_into(file, &graph).unwrap();
+    let file =
+        BufWriter::new(File::create("serialised_data/p1_main_nodes_vector_8am.bin").unwrap());
+    //bincode::serialize_into(file, &graph).unwrap();
+    bincode::serialize_into(file, &graph_walk_vec).unwrap();
 }
 
 fn serialise_graph_pt_vector() {
@@ -52,12 +52,27 @@ fn serialise_graph_pt_vector() {
 
     // to do: check meaning of the '2' in [usize; 2]
     let input: Vec<Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
-    
+
     // make empty graph
+    /*
     let mut graph = GraphPT {
-        edges_per_node: Vec::new(), 
+        edges_per_node: Vec::new(),
     };
-    
+    */
+
+    let mut graph_pt_vec = Vec::new();
+    for input_edges in input.iter() {
+        let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
+        for array in input_edges {
+            edges.push(EdgePT {
+                leavetime: LeavingTime(array[1] as u32),
+                cost: Cost(array[0] as u16),
+            });
+        }
+        graph_pt_vec.push(edges);
+    }
+
+    /*
     // populate graph
     for input_edges in input.iter() {
         let mut edges = SmallVec::new();
@@ -70,9 +85,12 @@ fn serialise_graph_pt_vector() {
 
         graph.edges_per_node.push(edges);
     }
-    
-    let file = BufWriter::new(File::create("serialised_data/p2_main_nodes_vector_8am.bin").unwrap());
-    bincode::serialize_into(file, &graph).unwrap();
+    */
+
+    let file =
+        BufWriter::new(File::create("serialised_data/p2_main_nodes_vector_8am.bin").unwrap());
+    //bincode::serialize_into(file, &graph).unwrap();
+    bincode::serialize_into(file, &graph_pt_vec).unwrap();
 }
 
 /*
@@ -154,6 +172,3 @@ fn serialise_list_immutable_array_i8(filename: &str) {
     bincode::serialize_into(file, &output).unwrap();
     println!("Serialised to {}", outpath);
 }
-
-
-

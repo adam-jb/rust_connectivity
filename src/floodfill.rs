@@ -43,6 +43,7 @@ pub fn floodfill(
     });
     let mut nodes_visited = HashSet::new();
     let mut total_iters = 0;
+    let mut pt_iters = 0;
 
     let mut scores: [i64; 32] = [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -93,12 +94,13 @@ pub fn floodfill(
                 time_limit,
                 trip_start_seconds,
                 &current.value,
+                &mut pt_iters, 
             );
         }
 
         total_iters += 1;
     }
-    println!("total_iters: {}\t{:?}", total_iters, now.elapsed());
+    println!("total_iters: {}\tpt_iters: {}\tstart {}\t{:?}", total_iters, pt_iters, start.0, now.elapsed());
 
     return (total_iters, start.0, scores);
 }
@@ -133,6 +135,7 @@ fn get_pt_connections(
     time_limit: Cost,
     trip_start_seconds: i32,
     current_node: &NodeID,
+    pt_iters: &mut i32,
 ) {
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
@@ -167,6 +170,8 @@ fn get_pt_connections(
                 cost: Cost(arrival_time_next_stop as u16),
                 value: NodeID(*destination_node as u32),
             });
+            
+            *pt_iters += 1;
         };
     }
 }
