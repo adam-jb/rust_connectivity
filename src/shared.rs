@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use std::collections::{HashMap};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy, Debug)]
 pub struct NodeID(pub u32);
@@ -19,7 +18,8 @@ pub struct EdgeWalk {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GraphWalk {
-    pub edges_per_node: HashMap<usize, SmallVec<[EdgeWalk; 4]>>,
+    //pub edges_per_node: HashMap<usize, SmallVec<[EdgeWalk; 4]>>,
+    pub edges_per_node: Vec<SmallVec<[EdgeWalk; 4]>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
@@ -30,5 +30,6 @@ pub struct EdgePT {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GraphPT {
-    pub edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
+    //pub edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
+    pub edges_per_node: Vec<SmallVec<[EdgePT; 4]>>,
 }

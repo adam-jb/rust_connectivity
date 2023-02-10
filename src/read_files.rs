@@ -2,26 +2,30 @@ use serde::de::DeserializeOwned;
 use std::time::Instant;
 use fs_err::File;
 use std::io::{BufReader};
+use smallvec::SmallVec;
+
 //use rayon::prelude::*;
 
-use crate::shared::{GraphWalk, GraphPT};
+use crate::shared::{GraphWalk, GraphPT, EdgeWalk, EdgePT};
 
 
 pub fn read_files_serial() -> (
     Vec<i32>,
     Vec<i32>,
     Vec<i32>,
-    GraphWalk,
-    GraphPT,
+    Vec<SmallVec<[EdgeWalk; 4]>>,
+    Vec<SmallVec<[EdgePT; 4]>>,
     Vec<i32>,
     [i8; 32],
 )  {
     let now = Instant::now();
-    let node_values_1d: Vec<i32> = deserialize_bincoded_file("node_values");
+    let node_values_1d: Vec<i32> = deserialize_bincoded_file("padded_node_values_8am");
     let start_nodes: Vec<i32> = deserialize_bincoded_file("start_nodes");
     let init_travel_times: Vec<i32> = deserialize_bincoded_file("init_travel_times");
-    let graph_walk: GraphWalk = deserialize_bincoded_file("p1_main_nodes");
-    let graph_pt: GraphPT = deserialize_bincoded_file("p2_main_nodes");
+    //let graph_walk: GraphWalk = deserialize_bincoded_file("p1_main_nodes_vector_8am");
+    //let graph_pt: GraphPT = deserialize_bincoded_file("p2_main_nodes_vector_8am");
+    let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> = deserialize_bincoded_file("p1_main_nodes_vector_8am");
+    let graph_pt: Vec<SmallVec<[EdgePT; 4]>> = deserialize_bincoded_file("p2_main_nodes_vector_8am");
     let travel_time_relationships: Vec<i32> = deserialize_bincoded_file("travel_time_relationships");
     let subpurpose_purpose_lookup: [i8; 32] = deserialize_bincoded_file("subpurpose_purpose_lookup");
     println!("Serial loading took {:?}", now.elapsed());
