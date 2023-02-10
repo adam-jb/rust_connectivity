@@ -16,20 +16,8 @@ pub struct EdgeWalk {
     pub cost: Cost,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct GraphWalk {
-    //pub edges_per_node: HashMap<usize, SmallVec<[EdgeWalk; 4]>>,
-    pub edges_per_node: Vec<SmallVec<[EdgeWalk; 4]>>,
-}
-
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct EdgePT {
     pub leavetime: LeavingTime,
     pub cost: Cost,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct GraphPT {
-    //pub edges_per_node: HashMap<usize, SmallVec<[EdgePT; 4]>>,
-    pub edges_per_node: Vec<SmallVec<[EdgePT; 4]>>,
 }

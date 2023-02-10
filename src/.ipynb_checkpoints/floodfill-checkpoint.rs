@@ -2,7 +2,7 @@ use std::collections::{BinaryHeap, HashSet};
 use std::time::Instant;
 
 use crate::priority_queue::PriorityQueueItem;
-use crate::shared::{Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
 
 pub fn floodfill(
@@ -28,7 +28,6 @@ pub fn floodfill(
 ) -> (i32, u32, [i64; 32]) {
     let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
-    let now = Instant::now();
 
     // 74444736 is calculated and stored in GCS: will be diff for each time of day as the contiguous
     // network will have a different number of nodes with active PT routes for each time of day
@@ -110,7 +109,7 @@ fn get_scores(
 ) {
     // to subset node_values_1d
     let start_pos = node_id * 32;
-
+    
     // 32 subpurposes
     for i in 0..subpurposes_count {
         let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 4105;

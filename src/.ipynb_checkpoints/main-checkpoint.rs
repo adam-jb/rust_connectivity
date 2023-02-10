@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use std::time::Instant;
 
-use crate::shared::{Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
 
 use actix_web::{get, post, web, App, HttpServer};

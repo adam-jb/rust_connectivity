@@ -4,7 +4,7 @@ use std::time::Instant;
 use fs_err::File;
 use std::io::BufWriter;
 
-use crate::shared::{Cost, EdgePT, EdgeWalk, GraphPT, GraphWalk, LeavingTime, NodeID};
+use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID};
 
 pub fn serialise_files() {
     let now = Instant::now();
