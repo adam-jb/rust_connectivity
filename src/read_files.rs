@@ -15,6 +15,9 @@ pub fn read_files_serial() -> (
     Vec<SmallVec<[EdgeWalk; 4]>>,
     Vec<SmallVec<[EdgePT; 4]>>,
     Vec<i32>,
+    Vec<i32>,
+    Vec<i32>,
+    Vec<i32>,
     [i8; 32],
 ) {
     let now = Instant::now();
@@ -25,10 +28,17 @@ pub fn read_files_serial() -> (
         deserialize_bincoded_file("p1_main_nodes_vector_8am");
     let graph_pt: Vec<SmallVec<[EdgePT; 4]>> =
         deserialize_bincoded_file("p2_main_nodes_vector_8am");
-    let travel_time_relationships: Vec<i32> =
-        deserialize_bincoded_file("travel_time_relationships");
+    let travel_time_relationships_7: Vec<i32> =
+        deserialize_bincoded_file("travel_time_relationships_7");
+    let travel_time_relationships_10: Vec<i32> =
+        deserialize_bincoded_file("travel_time_relationships_10");
+    let travel_time_relationships_16: Vec<i32> =
+        deserialize_bincoded_file("travel_time_relationships_16");
+    let travel_time_relationships_19: Vec<i32> =
+        deserialize_bincoded_file("travel_time_relationships_19");
     let subpurpose_purpose_lookup: [i8; 32] =
         deserialize_bincoded_file("subpurpose_purpose_lookup");
+    
     println!("Serial loading took {:?}", now.elapsed());
     (
         node_values_1d,
@@ -36,7 +46,10 @@ pub fn read_files_serial() -> (
         init_travel_times,
         graph_walk,
         graph_pt,
-        travel_time_relationships,
+        travel_time_relationships_7,
+        travel_time_relationships_10,
+        travel_time_relationships_16,
+        travel_time_relationships_19,
         subpurpose_purpose_lookup,
     )
 }

@@ -11,10 +11,13 @@ pub fn serialise_files() {
     serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
     serialise_list("start_nodes");
     serialise_list("init_travel_times");
-    serialise_graph_walk_vector(); //serialise_graph_walk();
-    serialise_graph_pt_vector(); //serialise_graph_pt();
-    serialise_list("padded_node_values_8am");
-    serialise_list("travel_time_relationships");
+    serialise_graph_walk_vector();
+    serialise_graph_pt_vector();
+    serialise_list("padded_node_values_6am");
+    serialise_list("travel_time_relationships_7");
+    serialise_list("travel_time_relationships_10");
+    serialise_list("travel_time_relationships_16");
+    serialise_list("travel_time_relationships_19");
     println!("File serialisation took {:?}", now.elapsed());
 }
 

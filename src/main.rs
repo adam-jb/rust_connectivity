@@ -51,6 +51,14 @@ async fn index(data: web::Data<AppState>) -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     // todo: update graphs in response to new PT routes
+    
+    /*
+    ##### update_p1_main_nodes
+    
+    
+    
+    */
+    
 
     println!("started api floodfill");
     let mut model_parameters_each_start = Vec::new();
@@ -59,7 +67,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             &data.graph_walk,
             NodeID(input.start_nodes_user_input[i] as u32),
             &data.node_values_1d,
-            &data.travel_time_relationships,
+            &data.travel_time_relationships_7,
             &data.subpurpose_purpose_lookup,
             &data.graph_pt,
             data.trip_start_seconds,
@@ -88,7 +96,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 async fn main() -> std::io::Result<()> {
     let trip_start_seconds = 3600 * 8;
 
-    //serialise_files();
+    serialise_files();
 
     let (
         node_values_1d,
@@ -96,7 +104,10 @@ async fn main() -> std::io::Result<()> {
         init_travel_times,
         graph_walk,
         graph_pt,
-        travel_time_relationships,
+        travel_time_relationships_7,
+        travel_time_relationships_10,
+        travel_time_relationships_16,
+        travel_time_relationships_19,
         subpurpose_purpose_lookup,
     ) = read_files_serial();
 
@@ -105,7 +116,10 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(AppState {
                 node_values_1d: node_values_1d.to_vec(),
                 trip_start_seconds: trip_start_seconds,
-                travel_time_relationships: travel_time_relationships.to_vec(),
+                travel_time_relationships_7: travel_time_relationships_7.to_vec(),
+                travel_time_relationships_10: travel_time_relationships_10.to_vec(),
+                travel_time_relationships_16: travel_time_relationships_16.to_vec(),
+                travel_time_relationships_19: travel_time_relationships_19.to_vec(),
                 subpurpose_purpose_lookup: subpurpose_purpose_lookup,
                 graph_walk: graph_walk.to_vec(),
                 graph_pt: graph_pt.to_vec(),
