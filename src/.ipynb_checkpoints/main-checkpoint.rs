@@ -50,7 +50,9 @@ async fn index(data: web::Data<AppState>) -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-    // create vector holding a tuple of params for each run of floodfill()
+
+    // todo: update graphs in response to new PT routes
+    
     println!("started api floodfill");
     let mut model_parameters_each_start = Vec::new();
     for i in 0..input.start_nodes_user_input.len() {
@@ -77,6 +79,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         now.elapsed(),
         parallel_res[0]
     );
+    
+    // todo: remove anything added to graphs in response to new routes
 
     return serde_json::to_string(&parallel_res).unwrap();
 }
