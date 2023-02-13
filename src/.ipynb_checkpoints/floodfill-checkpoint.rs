@@ -48,6 +48,11 @@ pub fn floodfill(
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0,
     ];
+    
+    // catch where start node is over an hour from centroid
+    if init_travel_time >= Cost(3600) {
+        return (total_iters, start.0, scores);
+    }
 
     while let Some(current) = queue.pop() {
         if nodes_visited.contains(&current.value) {
@@ -111,6 +116,10 @@ fn get_scores(
     // to subset node_values_1d
     let start_pos = node_id * 32;
     
+    // in theory no time_so_far should ever be over 3600, but it sometimes happens: this is a hack
+    // until it is debugged
+    //if time_so_far <= 3600 {
+        
     // 32 subpurposes
     for i in 0..subpurposes_count {
         let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 4105;
@@ -120,6 +129,9 @@ fn get_scores(
         // this line could be faster, eg if node_values_1d was an array
         scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
     }
+    //}
+    
+    
 }
 
 fn get_pt_connections(
@@ -130,6 +142,7 @@ fn get_pt_connections(
     trip_start_seconds: i32,
     current_node: &NodeID,
 ) {
+    
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 

@@ -35,6 +35,9 @@ struct AppState {
 struct UserInputJSON {
     start_nodes_user_input: Vec<i32>,
     init_travel_times_user_input: Vec<i32>,
+    trip_start_seconds: i32,
+    p1_additions: Vec<i32>,
+    p2_additions: Vec<i32>,
 }
 
 #[derive(Serialize)]
@@ -50,9 +53,7 @@ async fn index() -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     
-    
-    let trip_start_seconds: i32 = 3600 * 8;
-    
+        
     // todo: update graphs in response to new PT routes
 
     /*
@@ -78,7 +79,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             &data.travel_time_relationships_7,
             &data.subpurpose_purpose_lookup,
             &data.graph_pt,
-            trip_start_seconds,
+            input.trip_start_seconds,
             Cost(input.init_travel_times_user_input[i] as u16),
         ))
     }
@@ -122,7 +123,6 @@ async fn main() -> std::io::Result<()> {
     let arc_travel_time_relationships_10 = Arc::new(travel_time_relationships_10);
     let arc_travel_time_relationships_16 = Arc::new(travel_time_relationships_16);
     let arc_travel_time_relationships_19 = Arc::new(travel_time_relationships_19);
-    //let arc_subpurpose_purpose_lookup = Arc::new(subpurpose_purpose_lookup);
 
     HttpServer::new(move || {
         App::new()
