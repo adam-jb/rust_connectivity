@@ -22,12 +22,6 @@ mod shared;
 // This struct represents state
 struct AppState {
     node_values_1d: Arc<Vec<i32>>,
-    /*
-    travel_time_relationships_7: Arc<Vec<i32>>,
-    travel_time_relationships_10: Arc<Vec<i32>>,
-    travel_time_relationships_16: Arc<Vec<i32>>,
-    travel_time_relationships_19: Arc<Vec<i32>>,
-    */
     travel_time_relationships_all: Arc<Vec<Arc<Vec<i32>>>>,
     subpurpose_purpose_lookup: [i8; 32],
     graph_walk: Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
@@ -53,12 +47,19 @@ async fn index() -> String {
     format!("App is listening")
 }
 
+#[get("/get_node_id_count/")]
+async fn get_node_id_count(data: web::Data<AppState>) -> String {
+    let count_original_nodes = &data.graph_walk.len();
+    return serde_json::to_string(&count_original_nodes).unwrap();
+}
+
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     
-        
+    let count_original_nodes: u32 = data.graph_walk.len() as u32;
+    
     // todo: update graphs in response to new PT routes
-
+    
     /*
     ##### update_p1_main_nodes
     
@@ -91,6 +92,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             &data.graph_pt,
             input.trip_start_seconds,
             Cost(input.init_travel_times_user_input[i] as u16),
+            count_original_nodes,
         ))
     }
     
@@ -129,12 +131,10 @@ async fn main() -> std::io::Result<()> {
     let arc_node_values_1d = Arc::new(node_values_1d);
     let arc_graph_walk = Arc::new(graph_walk);
     let arc_graph_pt = Arc::new(graph_pt);
-    
     let arc_travel_time_relationships_7 = Arc::new(travel_time_relationships_7);
     let arc_travel_time_relationships_10 = Arc::new(travel_time_relationships_10);
     let arc_travel_time_relationships_16 = Arc::new(travel_time_relationships_16);
     let arc_travel_time_relationships_19 = Arc::new(travel_time_relationships_19);
-    
     
     let travel_time_relationships_all: Vec<Arc<Vec<i32>>> = vec![
         arc_travel_time_relationships_7,
@@ -149,17 +149,12 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(AppState {
                 node_values_1d: arc_node_values_1d.clone(),
                 travel_time_relationships_all: arc_travel_time_relationships_all.clone(),
-                /*
-                travel_time_relationships_7: arc_travel_time_relationships_7.clone(),
-                travel_time_relationships_10: arc_travel_time_relationships_10.clone(),
-                travel_time_relationships_16: arc_travel_time_relationships_16.clone(),
-                travel_time_relationships_19: arc_travel_time_relationships_19.clone(),
-                */
                 subpurpose_purpose_lookup: subpurpose_purpose_lookup,
                 graph_walk: arc_graph_walk.clone(),
                 graph_pt: arc_graph_pt.clone(),
             }))
             .service(index)
+            .service(get_node_id_count)
             .service(floodfill_pt)
     })
     .bind(("127.0.0.1", 7328))?

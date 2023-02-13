@@ -16,6 +16,7 @@ pub fn floodfill(
         graph_pt,
         trip_start_seconds,
         init_travel_time,
+        count_original_nodes,
     ): (
         &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
         NodeID,
@@ -25,6 +26,7 @@ pub fn floodfill(
         &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
         i32,
         Cost,
+        u32,
     ),
 ) -> (i32, u32, [i64; 32]) {
     let time_limit: Cost = Cost(3600);
@@ -62,7 +64,8 @@ pub fn floodfill(
         nodes_visited.insert(current.value);
 
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
-        if current.value.0 >= count_nodes_no_value {
+        //if count_original_nodes >= current.value.0 >= count_nodes_no_value {
+        if count_original_nodes >= current.value.0 && current.value.0 >= count_nodes_no_value {
             get_scores(
                 current.value.0,
                 &node_values_1d,

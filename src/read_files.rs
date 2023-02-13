@@ -19,13 +19,13 @@ pub fn read_files_serial() -> (
     [i8; 32],
 ) {
     let now = Instant::now();
-    
+
     let node_values_1d: Vec<i32> = deserialize_bincoded_file("padded_node_values_6am");
     let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> =
         deserialize_bincoded_file("p1_main_nodes_vector_6am");
     let graph_pt: Vec<SmallVec<[EdgePT; 4]>> =
         deserialize_bincoded_file("p2_main_nodes_vector_6am");
-    
+
     let travel_time_relationships_7: Vec<i32> =
         deserialize_bincoded_file("travel_time_relationships_7");
     let travel_time_relationships_10: Vec<i32> =
@@ -36,7 +36,7 @@ pub fn read_files_serial() -> (
         deserialize_bincoded_file("travel_time_relationships_19");
     let subpurpose_purpose_lookup: [i8; 32] =
         deserialize_bincoded_file("subpurpose_purpose_lookup");
-    
+
     println!("Serial loading took {:?}", now.elapsed());
     (
         node_values_1d,
