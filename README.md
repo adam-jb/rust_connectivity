@@ -16,7 +16,7 @@ curl http://127.0.0.1:7328/
 
 Run PT algorithm on 5 start nodes: 
 ```
-wget -O- --post-data='{"start_nodes_user_input":[3556923, 3556924, 3556925,3556926,3556927],"init_travel_times_user_input":[4,5,6,3,434]}' \
+wget -O- --post-data='{"start_nodes_user_input":[3556923, 3556924, 3556925,3556926,3556927],"init_travel_times_user_input":[4,5,6,3,434],"trip_start_seconds":80000,"p1_additions":[],"p2_additions":[]}' \
   --header='Content-Type:application/json' \
   'http://127.0.0.1:7328/floodfill_pt/'
 ```
