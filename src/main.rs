@@ -8,17 +8,16 @@ use actix_web::{get, post, web, App, HttpServer};
 use floodfill::floodfill;
 use read_files::read_files_serial;
 use serde::{Deserialize, Serialize};
-use serialise_files::serialise_files;
 use std::sync::Arc;
 
 mod floodfill;
 mod priority_queue;
 mod read_files;
-mod serialise_files;
 mod shared;
 
-//#[global_allocator]
-//static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+//use serialise_files::serialise_files;
+//mod serialise_files;
+
 
 // This struct represents state
 struct AppState {
