@@ -18,7 +18,6 @@ mod shared;
 //use serialise_files::serialise_files;
 //mod serialise_files;
 
-
 // This struct represents state
 struct AppState {
     node_values_1d: Arc<Vec<i32>>,
@@ -55,19 +54,17 @@ async fn get_node_id_count(data: web::Data<AppState>) -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-    
     let count_original_nodes: u32 = data.graph_walk.len() as u32;
-    
+
     // todo: update graphs in response to new PT routes
-    
+
     /*
     ##### update_p1_main_nodes
-    
-    
-    
+
+
+
     */
-    
-    
+
     // find which travel time relationships to use
     let mut time_of_day_ix = 0;
     if input.trip_start_seconds > 3600 * 10 {
@@ -79,7 +76,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     if input.trip_start_seconds > 3600 * 19 {
         time_of_day_ix = 3;
     }
-    
+
     println!("started api floodfill\ttime_of_day_ix: {}", time_of_day_ix);
     let mut model_parameters_each_start = Vec::new();
     for i in 0..input.start_nodes_user_input.len() {
@@ -95,17 +92,14 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             count_original_nodes,
         ))
     }
-    
+
     // run for all in parallel
     let now = Instant::now();
     let parallel_res: Vec<(i32, u32, [i64; 32])> = model_parameters_each_start
         .par_iter()
         .map(|input| floodfill(*input))
         .collect();
-    println!(
-        "Parallel floodfill took {:?}",
-        now.elapsed()
-    );
+    println!("Parallel floodfill took {:?}", now.elapsed());
 
     // todo: remove anything added to graphs in response to new routes
 
@@ -114,7 +108,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
     //serialise_files();
 
     let (
@@ -127,7 +120,7 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
         subpurpose_purpose_lookup,
     ) = read_files_serial();
-    
+
     let arc_node_values_1d = Arc::new(node_values_1d);
     let arc_graph_walk = Arc::new(graph_walk);
     let arc_graph_pt = Arc::new(graph_pt);
@@ -135,13 +128,13 @@ async fn main() -> std::io::Result<()> {
     let arc_travel_time_relationships_10 = Arc::new(travel_time_relationships_10);
     let arc_travel_time_relationships_16 = Arc::new(travel_time_relationships_16);
     let arc_travel_time_relationships_19 = Arc::new(travel_time_relationships_19);
-    
+
     let travel_time_relationships_all: Vec<Arc<Vec<i32>>> = vec![
         arc_travel_time_relationships_7,
         arc_travel_time_relationships_10,
         arc_travel_time_relationships_16,
-        arc_travel_time_relationships_19
-        ];
+        arc_travel_time_relationships_19,
+    ];
     let arc_travel_time_relationships_all = Arc::new(travel_time_relationships_all);
 
     HttpServer::new(move || {
