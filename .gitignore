@@ -3,3 +3,4 @@ data/*
 serialised_data/*
 *.swp
 .DS_Store
+.ipynb_checkpoints/*
