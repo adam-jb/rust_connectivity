@@ -3,6 +3,8 @@ use std::collections::{BinaryHeap, HashSet};
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
+use std::sync::Arc;
+
 
 pub fn floodfill(
     (
@@ -15,12 +17,12 @@ pub fn floodfill(
         trip_start_seconds,
         init_travel_time,
     ): (
-        &Vec<SmallVec<[EdgeWalk; 4]>>, //&GraphWalk,
+        &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
         NodeID,
-        &Vec<i32>,
-        &Vec<i32>,
+        &Arc<Vec<i32>>,
+        &Arc<Vec<i32>>,
         &[i8; 32],
-        &Vec<SmallVec<[EdgePT; 4]>>, //&GraphPT,
+        &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
         i32,
         Cost,
     ),

@@ -9,6 +9,7 @@ use floodfill::floodfill;
 use read_files::read_files_serial;
 use serde::{Deserialize, Serialize};
 use serialise_files::serialise_files;
+use std::sync::Arc;
 
 mod floodfill;
 mod priority_queue;
@@ -21,15 +22,14 @@ mod shared;
 
 // This struct represents state
 struct AppState {
-    node_values_1d: Vec<i32>,
-    trip_start_seconds: i32,
-    travel_time_relationships_7: Vec<i32>,
-    travel_time_relationships_10: Vec<i32>,
-    travel_time_relationships_16: Vec<i32>,
-    travel_time_relationships_19: Vec<i32>,
+    node_values_1d: Arc<Vec<i32>>,
+    travel_time_relationships_7: Arc<Vec<i32>>,
+    travel_time_relationships_10: Arc<Vec<i32>>,
+    travel_time_relationships_16: Arc<Vec<i32>>,
+    travel_time_relationships_19: Arc<Vec<i32>>,
     subpurpose_purpose_lookup: [i8; 32],
-    graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
+    graph_walk: Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+    graph_pt: Arc<Vec<SmallVec<[EdgePT; 4]>>>,
 }
 
 #[derive(Deserialize)]
@@ -44,17 +44,18 @@ struct PostOutputJSON {
 }
 
 #[get("/")]
-async fn index(data: web::Data<AppState>) -> String {
-    format!(
-        "App is listening! Len of node_values_1d {}",
-        &data.node_values_1d.len()
-    )
+async fn index() -> String {
+    format!("App is listening")
 }
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-    // todo: update graphs in response to new PT routes
     
+    
+    let trip_start_seconds: i32 = 3600 * 8;
+    
+    // todo: update graphs in response to new PT routes
+
     /*
     ##### update_p1_main_nodes
     
@@ -62,6 +63,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     */
     
+    // todo: choose travel_time_relationships. 
+    // could make a vector, then push the relevant travel_time_relationships obj 
+    // eg: &data.travel_time_relationships_7
+    // to the vector
+    // then pass first item of the vector to func below
 
     println!("started api floodfill");
     let mut model_parameters_each_start = Vec::new();
@@ -73,11 +79,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             &data.travel_time_relationships_7,
             &data.subpurpose_purpose_lookup,
             &data.graph_pt,
-            data.trip_start_seconds,
+            trip_start_seconds,
             Cost(input.init_travel_times_user_input[i] as u16),
         ))
     }
-
+    
     // run for all in parallel
     let now = Instant::now();
     let parallel_res: Vec<(i32, u32, [i64; 32])> = model_parameters_each_start
@@ -85,9 +91,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         .map(|input| floodfill(*input))
         .collect();
     println!(
-        "Parallel floodfill took {:?}\tFirst node scores: {:?}",
-        now.elapsed(),
-        parallel_res[0]
+        "Parallel floodfill took {:?}",
+        now.elapsed()
     );
 
     // todo: remove anything added to graphs in response to new routes
@@ -97,9 +102,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let trip_start_seconds = 3600 * 8;
 
-    serialise_files();
+    //serialise_files();
 
     let (
         node_values_1d,
@@ -111,19 +115,27 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
         subpurpose_purpose_lookup,
     ) = read_files_serial();
+    
+    let arc_node_values_1d = Arc::new(node_values_1d);
+    let arc_graph_walk = Arc::new(graph_walk);
+    let arc_graph_pt = Arc::new(graph_pt);
+    let arc_travel_time_relationships_7 = Arc::new(travel_time_relationships_7);
+    let arc_travel_time_relationships_10 = Arc::new(travel_time_relationships_10);
+    let arc_travel_time_relationships_16 = Arc::new(travel_time_relationships_16);
+    let arc_travel_time_relationships_19 = Arc::new(travel_time_relationships_19);
+    //let arc_subpurpose_purpose_lookup = Arc::new(subpurpose_purpose_lookup);
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(AppState {
-                node_values_1d: node_values_1d.to_vec(),
-                trip_start_seconds: trip_start_seconds,
-                travel_time_relationships_7: travel_time_relationships_7.to_vec(),
-                travel_time_relationships_10: travel_time_relationships_10.to_vec(),
-                travel_time_relationships_16: travel_time_relationships_16.to_vec(),
-                travel_time_relationships_19: travel_time_relationships_19.to_vec(),
+                node_values_1d: arc_node_values_1d.clone(),
+                travel_time_relationships_7: arc_travel_time_relationships_7.clone(),
+                travel_time_relationships_10: arc_travel_time_relationships_10.clone(),
+                travel_time_relationships_16: arc_travel_time_relationships_16.clone(),
+                travel_time_relationships_19: arc_travel_time_relationships_19.clone(),
                 subpurpose_purpose_lookup: subpurpose_purpose_lookup,
-                graph_walk: graph_walk.to_vec(),
-                graph_pt: graph_pt.to_vec(),
+                graph_walk: arc_graph_walk.clone(),
+                graph_pt: arc_graph_pt.clone(),
             }))
             .service(index)
             .service(floodfill_pt)
