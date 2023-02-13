@@ -6,27 +6,15 @@ use smallvec::SmallVec;
 use std::sync::Arc;
 
 pub fn floodfill(
-    (
-        graph_walk,
-        start,
-        node_values_1d,
-        travel_time_relationships,
-        subpurpose_purpose_lookup,
-        graph_pt,
-        trip_start_seconds,
-        init_travel_time,
-        count_original_nodes,
-    ): (
-        &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
-        NodeID,
-        &Arc<Vec<i32>>,
-        &Arc<Vec<i32>>,
-        &[i8; 32],
-        &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
-        i32,
-        Cost,
-        u32,
-    ),
+    graph_walk: &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+    start: NodeID,
+    node_values_1d: &Arc<Vec<i32>>,
+    travel_time_relationships: &Arc<Vec<i32>>,
+    subpurpose_purpose_lookup: &[i8; 32],
+    graph_pt: &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
+    trip_start_seconds: i32,
+    init_travel_time: Cost,
+    count_original_nodes: u32,
 ) -> (i32, u32, [i64; 32]) {
     let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;

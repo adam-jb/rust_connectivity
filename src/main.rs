@@ -97,7 +97,10 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let now = Instant::now();
     let parallel_res: Vec<(i32, u32, [i64; 32])> = model_parameters_each_start
         .par_iter()
-        .map(|input| floodfill(*input))
+        .map(|input| {
+            let (a, b, c, d, e, f, g, h, i) = *input;
+            floodfill(a, b, c, d, e, f, g, h, i)
+        })
         .collect();
     println!("Parallel floodfill took {:?}", now.elapsed());
 
