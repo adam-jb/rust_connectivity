@@ -34,7 +34,7 @@ struct UserInputJSON {
     start_nodes_user_input: Vec<i32>,
     init_travel_times_user_input: Vec<i32>,
     trip_start_seconds: i32,
-    pt_additions: Vec<Vec<Vec<i32>>>,
+    //pt_additions: Vec<Vec<Vec<i32>>>,
     year: i32,
 }
 
@@ -57,7 +57,7 @@ async fn get_node_id_count(data: web::Data<AppState>) -> String {
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
     
-    println!("Floodfill received");
+    println!("Floodfill request received");
     
     // todo: update graphs in response to new PT routes
     

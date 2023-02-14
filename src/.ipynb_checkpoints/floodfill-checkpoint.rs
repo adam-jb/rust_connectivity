@@ -115,14 +115,10 @@ fn get_scores(
 ) {
     // to subset node_values_1d
     let start_pos = node_id * 32;
-    
-    // in theory no time_so_far should ever be over 3600, but it sometimes happens: this is a hack
-    // until it is debugged
-    //if time_so_far <= 3600 {
         
     // 32 subpurposes
     for i in 0..subpurposes_count {
-        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 4105;
+        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 3601;
         let multiplier =
             travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
 
