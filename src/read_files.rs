@@ -6,10 +6,11 @@ use std::time::Instant;
 
 use crate::shared::{EdgePT, EdgeWalk};
 
-pub fn read_files_serial() -> (
+pub fn read_files_serial(year:i32) -> (
     Vec<i32>,
     Vec<SmallVec<[EdgeWalk; 4]>>,
     Vec<SmallVec<[EdgePT; 4]>>,
+    u32,
     Vec<i32>,
     Vec<i32>,
     Vec<i32>,
@@ -18,12 +19,19 @@ pub fn read_files_serial() -> (
 ) {
     let now = Instant::now();
 
-    let node_values_1d: Vec<i32> = deserialize_bincoded_file("padded_node_values_6am");
+    let padded_node_values_filename = format!("padded_node_values_6am_{}", year);
+    let p1_filename = format!("p1_main_nodes_vector_6am_{}", year);
+    let p2_filename = format!("p2_main_nodes_vector_6am_{}", year);
+    let node_values_padding_row_count_filename = format!("node_values_padding_row_count_6am_{}", year);
+    
+    let node_values_1d: Vec<i32> = deserialize_bincoded_file(&padded_node_values_filename);
     let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> =
-        deserialize_bincoded_file("p1_main_nodes_vector_6am");
+        deserialize_bincoded_file(&p1_filename);
     let graph_pt: Vec<SmallVec<[EdgePT; 4]>> =
-        deserialize_bincoded_file("p2_main_nodes_vector_6am");
-
+        deserialize_bincoded_file(&p2_filename);
+    let node_values_padding_row_count:u32 =
+        deserialize_bincoded_file(&node_values_padding_row_count_filename);
+    
     let travel_time_relationships_7: Vec<i32> =
         deserialize_bincoded_file("travel_time_relationships_7");
     let travel_time_relationships_10: Vec<i32> =
@@ -40,6 +48,7 @@ pub fn read_files_serial() -> (
         node_values_1d,
         graph_walk,
         graph_pt,
+        node_values_padding_row_count,
         travel_time_relationships_7,
         travel_time_relationships_10,
         travel_time_relationships_16,

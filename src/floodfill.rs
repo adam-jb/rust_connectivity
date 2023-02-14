@@ -17,6 +17,7 @@ pub fn floodfill(
         trip_start_seconds,
         init_travel_time,
         count_original_nodes,
+        node_values_padding_row_count,
     ): (
         &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
         NodeID,
@@ -27,16 +28,13 @@ pub fn floodfill(
         i32,
         Cost,
         u32,
+        u32,
     ),
 ) -> (i32, u32, [i64; 32]) {
     let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
-
-    // 74444736 is calculated and stored in GCS: will be diff for each time of day as the contiguous
-    // network will have a different number of nodes with active PT routes for each time of day
-    // https://storage.googleapis.com/hack-bucket-8204707942/node_values_padding_row_count_8am.json
-    let offset_nodes_no_value = 74444736 as u32;
-    let count_nodes_no_value = offset_nodes_no_value / 32;
+    
+    let count_nodes_no_value = node_values_padding_row_count / 32;
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
@@ -64,7 +62,6 @@ pub fn floodfill(
         nodes_visited.insert(current.value);
 
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
-        //if count_original_nodes >= current.value.0 >= count_nodes_no_value {
         if count_original_nodes >= current.value.0 && current.value.0 >= count_nodes_no_value {
             get_scores(
                 current.value.0,
