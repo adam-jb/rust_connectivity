@@ -36,6 +36,7 @@ struct UserInputJSON {
     trip_start_seconds: i32,
     pt_additions: Vec<Vec<Vec<i32>>>,
     year: i32,
+    new_build_additions: Vec<Vec<i32>>,
 }
 
 #[derive(Serialize)]
@@ -67,6 +68,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     
     */
+    
+    // todo: add new values for new buildings
+    // input.new_build_additions
     
     
     
@@ -141,7 +145,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         }
     }
     
-    // run for all in parallel
     println!("Started running floodfill\ttime_of_day_ix: {}", time_of_day_ix);
     let now = Instant::now();
     let parallel_res: Vec<(i32, u32, [i64; 32])> = model_parameters_each_start
@@ -154,6 +157,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     );
 
     // todo: remove anything added to graphs in response to new routes
+    
+    
+    // todo: drop values for new buildings
     
     
 
