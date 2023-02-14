@@ -34,7 +34,7 @@ struct UserInputJSON {
     start_nodes_user_input: Vec<i32>,
     init_travel_times_user_input: Vec<i32>,
     trip_start_seconds: i32,
-    //pt_additions: Vec<Vec<Vec<i32>>>,
+    pt_additions: Vec<Vec<Vec<i32>>>,
     year: i32,
 }
 
@@ -60,7 +60,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     println!("Floodfill request received");
     
     // todo: update graphs in response to new PT routes
-    
+    //println!("pt_additions: {:?}",input.pt_additions);
     /*
     ##### update_p1_main_nodes
     
@@ -122,7 +122,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 node_values_padding_row_count,
             ))
         }
-        
+    
     } else {
         println!("Creating tuples to pass to floodfill for 2022 data");
         for i in 0..input.start_nodes_user_input.len() {
@@ -206,6 +206,7 @@ async fn main() -> std::io::Result<()> {
                 graph_pt: arc_graph_pt.clone(),
                 node_values_padding_row_count: node_values_padding_row_count,
             }))
+            .data(web::JsonConfig::default().limit(1024 * 1024 * 50))  // allow POST'd JSON payloads up to 50mb
             .service(index)
             .service(get_node_id_count)
             .service(floodfill_pt)
