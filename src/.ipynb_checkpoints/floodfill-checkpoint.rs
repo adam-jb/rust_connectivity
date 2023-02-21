@@ -5,7 +5,6 @@ use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
 use std::sync::Arc;
 
-
 pub fn floodfill(
     (
         graph_walk,
@@ -33,7 +32,7 @@ pub fn floodfill(
 ) -> (i32, u32, [i64; 32]) {
     let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
-    
+
     let count_nodes_no_value = node_values_padding_row_count / 32;
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
@@ -48,7 +47,7 @@ pub fn floodfill(
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0,
     ];
-    
+
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
         return (total_iters, start.0, scores);
@@ -115,7 +114,7 @@ fn get_scores(
 ) {
     // to subset node_values_1d
     let start_pos = node_id * 32;
-        
+
     // 32 subpurposes
     for i in 0..subpurposes_count {
         let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 3601;
@@ -126,8 +125,6 @@ fn get_scores(
         scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
     }
     //}
-    
-    
 }
 
 fn get_pt_connections(
@@ -138,7 +135,6 @@ fn get_pt_connections(
     trip_start_seconds: i32,
     current_node: &NodeID,
 ) {
-    
     // find time node is arrived at in seconds past midnight
     let time_of_arrival_current_node = trip_start_seconds as u32 + time_so_far as u32;
 
@@ -163,7 +159,7 @@ fn get_pt_connections(
             time_so_far as u32 + wait_time_this_stop as u32 + journey_time as u32;
 
         if arrival_time_next_stop < time_limit.0 as u32 {
-            //// Notice this uses 'leavingTime' as first 'edge' for each node stores ID
+            //// Notice this uses 'leavingTime' from first 'edge' for the ID
             //// of next node: this is legacy from our matrix-based approach in python
             let destination_node = &graph_pt[(current_node.0 as usize)][0].leavetime.0;
 

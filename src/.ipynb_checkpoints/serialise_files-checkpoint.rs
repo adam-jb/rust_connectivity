@@ -6,6 +6,11 @@ use std::io::BufWriter;
 
 use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID};
 
+pub fn serialise_files_all_years() {
+    for year in 2016..2023 {
+        serialise_files(year);
+    }
+}
 
 pub fn serialise_files(year:i32) {
     let now = Instant::now();

@@ -1,22 +1,23 @@
 use rayon::prelude::*;
 use std::time::Instant;
-
-use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
-
-use actix_web::{get, post, web, App, HttpServer};
-use floodfill::floodfill;
-use read_files::read_files_serial;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use actix_web::{get, post, web, App, HttpServer};
+
+use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
+use floodfill::floodfill;
+use read_files::{read_files_serial, read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup};
+use get_time_of_day_index::get_time_of_day_index;
 
 mod floodfill;
 mod priority_queue;
 mod read_files;
 mod shared;
+mod endpoint_funcs;
 
-use serialise_files::serialise_files;
-mod serialise_files;
+//use serialise_files::serialise_files_all_years;
+//mod serialise_files;
 
 
 // This struct represents state
@@ -35,6 +36,7 @@ struct UserInputJSON {
     init_travel_times_user_input: Vec<i32>,
     trip_start_seconds: i32,
     pt_additions: Vec<Vec<Vec<i32>>>,
+    count_new_nodes: i32,
     year: i32,
     new_build_additions: Vec<Vec<i32>>,
 }
@@ -74,18 +76,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     
     
-    // find which travel time relationships to use
-    let mut time_of_day_ix = 0;
-    if input.trip_start_seconds > 3600 * 10 {
-        time_of_day_ix = 1;
-    }
-    if input.trip_start_seconds > 3600 * 16 {
-        time_of_day_ix = 2;
-    }
-    if input.trip_start_seconds > 3600 * 19 {
-        time_of_day_ix = 3;
-    }
-    
+    let time_of_day_ix:usize = get_time_of_day_index(input.trip_start_seconds);
     let count_original_nodes: u32 = data.graph_walk.len() as u32;
     let mut model_parameters_each_start = Vec::new();
     
@@ -94,18 +85,12 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let arc_graph_pt: Arc<Vec<SmallVec<[EdgePT; 4]>>>;
     
     if input.year < 2022 {
-        // read graphs and node values from previous year to use
         let (
             node_values_1d,
             graph_walk,
             graph_pt,
             node_values_padding_row_count,
-            travel_time_relationships_7,
-            travel_time_relationships_10,
-            travel_time_relationships_16,
-            travel_time_relationships_19,
-            subpurpose_purpose_lookup,
-        ) = read_files_serial(input.year);
+        ) = read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
     
         arc_node_values_1d = Arc::new(node_values_1d);
         arc_graph_walk = Arc::new(graph_walk);
@@ -168,10 +153,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-
-    //for year in 2016..2023 {
-    //    serialise_files(year);
-    //}
+    
+    //serialise_files_all_years();
     
     let year: i32 = 2022;
     let (
@@ -187,8 +170,8 @@ async fn main() -> std::io::Result<()> {
     ) = read_files_serial(year);
     
     let arc_node_values_1d = Arc::new(node_values_1d);
-    let arc_graph_walk = Arc::new(graph_walk);
-    let arc_graph_pt = Arc::new(graph_pt);
+    let mut arc_graph_walk = Arc::new(graph_walk);
+    let mut arc_graph_pt = Arc::new(graph_pt);
     let arc_travel_time_relationships_7 = Arc::new(travel_time_relationships_7);
     let arc_travel_time_relationships_10 = Arc::new(travel_time_relationships_10);
     let arc_travel_time_relationships_16 = Arc::new(travel_time_relationships_16);
@@ -200,6 +183,7 @@ async fn main() -> std::io::Result<()> {
         arc_travel_time_relationships_16,
         arc_travel_time_relationships_19
         ];
+    
     let arc_travel_time_relationships_all = Arc::new(travel_time_relationships_all);
 
     HttpServer::new(move || {
