@@ -12,15 +12,15 @@ pub fn serialise_files_all_years() {
     }
 }
 
-pub fn serialise_files(year:i32) {
+pub fn serialise_files(year: i32) {
     let now = Instant::now();
-    
+
     let padded_nodes_filename = format!("padded_node_values_6am_{}", year);
     serialise_list(&padded_nodes_filename);
-    serialise_graph_walk_vector(year);
-    serialise_graph_pt_vector(year);
+    let len_graph_walk = serialise_graph_walk_vector(year);
+    serialise_graph_pt_vector(year, len_graph_walk);
     serialise_node_values_padding_count(year);
-    
+
     serialise_list_immutable_array_i8("subpurpose_purpose_lookup");
     serialise_list("travel_time_relationships_7");
     serialise_list("travel_time_relationships_10");
@@ -29,24 +29,24 @@ pub fn serialise_files(year:i32) {
     println!("File serialisation year {}/tTook {:?}", year, now.elapsed());
 }
 
-
-fn serialise_node_values_padding_count(year:i32) {
+fn serialise_node_values_padding_count(year: i32) {
     let contents_filename = format!("data/node_values_padding_row_count_6am_{}.json", year);
     let contents = fs_err::read_to_string(contents_filename).unwrap();
     let input_value: u32 = serde_json::from_str(&contents).unwrap();
-    let filename = format!("serialised_data/node_values_padding_row_count_6am_{}.bin", year);
+    let filename = format!(
+        "serialised_data/node_values_padding_row_count_6am_{}.bin",
+        year
+    );
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &input_value).unwrap();
 }
 
-
-fn serialise_graph_walk_vector(year:i32) {
-    
+fn serialise_graph_walk_vector(year: i32) -> usize {
     let contents_filename = format!("data/p1_main_nodes_list_6am_{}.json", year);
     let contents = fs_err::read_to_string(contents_filename).unwrap();
 
     let input: Vec<Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
-    
+
     let mut graph_walk_vec = Vec::new();
     for input_edges in input.iter() {
         let mut edges: SmallVec<[EdgeWalk; 4]> = SmallVec::new();
@@ -62,14 +62,13 @@ fn serialise_graph_walk_vector(year:i32) {
     let filename = format!("serialised_data/p1_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());
     bincode::serialize_into(file, &graph_walk_vec).unwrap();
+    return graph_walk_vec.len();
 }
 
-fn serialise_graph_pt_vector(year:i32) {
-    
+fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     let contents_filename = format!("data/p2_main_nodes_list_6am_{}.json", year);
     let contents = fs_err::read_to_string(contents_filename).unwrap();
 
-    // to do: check meaning of the '2' in [usize; 2]
     let input: Vec<Vec<[usize; 2]>> = serde_json::from_str(&contents).unwrap();
 
     let mut graph_pt_vec = Vec::new();
@@ -83,6 +82,12 @@ fn serialise_graph_pt_vector(year:i32) {
         }
         graph_pt_vec.push(edges);
     }
+
+    for _ in graph_pt_vec.len()..len_graph_walk {
+        let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
+        graph_pt_vec.push(edges);
+    }
+    assert!(graph_pt_vec.len() == len_graph_walk);
 
     let filename = format!("serialised_data/p2_main_nodes_vector_6am_{}.bin", year);
     let file = BufWriter::new(File::create(filename).unwrap());

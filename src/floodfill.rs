@@ -3,7 +3,7 @@ use std::collections::{BinaryHeap, HashSet};
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub fn floodfill(
     (
@@ -18,12 +18,12 @@ pub fn floodfill(
         count_original_nodes,
         node_values_padding_row_count,
     ): (
-        &Arc<Vec<SmallVec<[EdgeWalk; 4]>>>,
+        &Vec<SmallVec<[EdgeWalk; 4]>>,
         NodeID,
-        &Arc<Vec<i32>>,
+        &Vec<i32>,
         &Arc<Vec<i32>>,
         &[i8; 32],
-        &Arc<Vec<SmallVec<[EdgePT; 4]>>>,
+        &Vec<SmallVec<[EdgePT; 4]>>,
         i32,
         Cost,
         u32,
