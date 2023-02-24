@@ -130,12 +130,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     assert!(node_values_1d_guard.len() == expected_len);
     //}
     
-    if input.new_build_additions.len() > 1 {
+    println!("input.new_build_additions.len(): {}", input.new_build_additions.len());
+    if input.new_build_additions.len() >= 1 {
         for new_build in &input.new_build_additions {
             let value_to_add = new_build[0];
             let index_of_nearest_node = new_build[1];
             let column_to_change = new_build[2];
-            let ix = index_of_nearest_node * 32 + column_to_change;
+            let ix = (index_of_nearest_node * 32) + column_to_change;
             node_values_1d_guard[ix as usize] += value_to_add;
         }
     }
@@ -247,13 +248,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         }
     }
     
-    if input.new_build_additions.len() > 1 {
+    if input.new_build_additions.len() >= 1 {
         for new_build in &input.new_build_additions {
             let value_to_add = new_build[0];
             let index_of_nearest_node = new_build[1];
             let column_to_change = new_build[2];
             let ix = index_of_nearest_node * 32 + column_to_change;
-            node_values_1d_guard[ix as usize] += value_to_add;
+            node_values_1d_guard[ix as usize] -= value_to_add;
         }
     }
     
