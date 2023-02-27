@@ -3,7 +3,7 @@ use std::collections::{BinaryHeap, HashSet};
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
 pub fn floodfill(
     (
@@ -17,6 +17,7 @@ pub fn floodfill(
         init_travel_time,
         count_original_nodes,
         node_values_padding_row_count,
+        target_destinations_vector,
     ): (
         &Vec<SmallVec<[EdgeWalk; 4]>>,
         NodeID,
@@ -28,8 +29,9 @@ pub fn floodfill(
         Cost,
         u32,
         u32,
+        &Vec<u32>,
     ),
-) -> (i32, u32, [i64; 32]) {
+) ->  (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) { 
     let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
 
@@ -42,7 +44,16 @@ pub fn floodfill(
     });
     let mut nodes_visited = HashSet::new();
     let mut total_iters = 0;
+    
+    let mut target_destinations_set: HashSet<u32> = HashSet::new();
 
+    for node_id in target_destinations_vector {
+        target_destinations_set.insert(*node_id);
+    }
+    
+    let mut destination_ids: Vec<u32> = vec![];
+    let mut destination_travel_times: Vec<u16> = vec![];
+    
     let mut scores: [i64; 32] = [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0,
@@ -50,14 +61,19 @@ pub fn floodfill(
 
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
-        return (total_iters, start.0, scores);
+        return (total_iters, start.0, scores, destination_ids, destination_travel_times);
     }
 
     while let Some(current) = queue.pop() {
         if nodes_visited.contains(&current.value) {
             continue;
         }
-
+        
+        if target_destinations_set.contains(&current.value.0) {
+            destination_ids.push(current.value.0);
+            destination_travel_times.push(current.cost.0);
+        }
+        
         nodes_visited.insert(current.value);
 
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
@@ -100,7 +116,7 @@ pub fn floodfill(
 
         total_iters += 1;
     }
-    return (total_iters, start.0, scores);
+    return (total_iters, start.0, scores, destination_ids, destination_travel_times);
 }
 
 fn get_scores(
@@ -121,7 +137,6 @@ fn get_scores(
         let multiplier =
             travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
 
-        // this line could be faster, eg if node_values_1d was an array
         scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
     }
     //}

@@ -1,10 +1,9 @@
 use rayon::prelude::*;
 use std::time::Instant;
 use smallvec::SmallVec;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize};
 use std::sync::{Arc, Mutex};
 use actix_web::{get, post, web, App, HttpServer};
-use std::collections::HashMap;
 
 use crate::shared::{Cost, LeavingTime, EdgePT, EdgeWalk, NodeID};
 use floodfill::floodfill;
@@ -17,10 +16,9 @@ mod read_files;
 mod shared;
 mod get_time_of_day_index;
 
-use serialise_files::serialise_files_all_years;
-mod serialise_files;
+//use serialise_files::serialise_files_all_years;
+//mod serialise_files;
 
-// This struct represents state
 struct AppState {
     node_values_1d: Arc<Mutex<Vec<i32>>>,
     travel_time_relationships_all: Arc<Vec<Arc<Vec<i32>>>>,
@@ -42,11 +40,7 @@ struct UserInputJSON {
     graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,
     year: i32,
     new_build_additions: Vec<Vec<i32>>,
-}
-
-#[derive(Serialize)]
-struct PostOutputJSON {
-    all: Vec<(i32, u32, [i64; 32])>,
+    target_destinations: Vec<u32>,
 }
 
 #[get("/")]
@@ -121,7 +115,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         graph_walk_guard[node] = edges;
     }
     
-    for i in 0..input.graph_walk_additions.len() {
+    for _i in 0..input.graph_walk_additions.len() {
         for _ in 0..32 {
             node_values_1d_guard.push(0);
         }
@@ -141,7 +135,6 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         }
     }
     
-    
     let time_of_day_ix:usize = get_time_of_day_index(input.trip_start_seconds);
     let mut model_parameters_each_start = Vec::new();
     
@@ -149,11 +142,11 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let arc_graph_walk: Arc<Mutex<Vec<SmallVec<[EdgeWalk; 4]>>>>;
     let arc_graph_pt: Arc<Mutex<Vec<SmallVec<[EdgePT; 4]>>>>;
     
-    let parallel_res: Vec<(i32, u32, [i64; 32])>;
-    
+    let parallel_res: Vec<(i32, u32, [i64; 32], Vec<u32>, Vec<u16>)>;
     
     // functionalise or split into two apis
     if input.year < 2022 {
+        
         let (
             node_values_1d,
             graph_walk,
@@ -161,13 +154,14 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             node_values_padding_row_count,
         ) = read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
     
+        println!("Got files read in for {}", input.year);
         arc_node_values_1d = Arc::new(Mutex::new(node_values_1d));
         arc_graph_walk = Arc::new(Mutex::new(graph_walk));
         arc_graph_pt = Arc::new(Mutex::new(graph_pt));
         
-        let mut graph_walk_guard = arc_graph_walk.lock().unwrap();
-        let mut graph_pt_guard = arc_graph_pt.lock().unwrap();
-        let mut node_values_1d_guard = data.node_values_1d.lock().unwrap();
+        let graph_walk_guard = arc_graph_walk.lock().unwrap();
+        let graph_pt_guard = arc_graph_pt.lock().unwrap();
+        let node_values_1d_guard = arc_node_values_1d.lock().unwrap();
         
         let count_original_nodes: u32 = graph_walk_guard.len() as u32;
         
@@ -188,6 +182,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 Cost(input.init_travel_times_user_input[i] as u16),
                 count_original_nodes,
                 node_values_padding_row_count,
+                &input.target_destinations,
             ))
         }
         
@@ -223,6 +218,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 Cost(input.init_travel_times_user_input[i] as u16),
                 count_original_nodes,
                 *&data.node_values_padding_row_count,
+                &input.target_destinations,
             ))
         }
         
@@ -281,9 +277,9 @@ async fn main() -> std::io::Result<()> {
         subpurpose_purpose_lookup,
     ) = read_files_serial(year);
     
-    let mut arc_node_values_1d = Arc::new(Mutex::new(node_values_1d));
-    let mut arc_graph_walk = Arc::new(Mutex::new(graph_walk));
-    let mut arc_graph_pt = Arc::new(Mutex::new(graph_pt));
+    let arc_node_values_1d = Arc::new(Mutex::new(node_values_1d));
+    let arc_graph_walk = Arc::new(Mutex::new(graph_walk));
+    let arc_graph_pt = Arc::new(Mutex::new(graph_pt));
     let arc_travel_time_relationships_7 = Arc::new(travel_time_relationships_7);
     let arc_travel_time_relationships_10 = Arc::new(travel_time_relationships_10);
     let arc_travel_time_relationships_16 = Arc::new(travel_time_relationships_16);
