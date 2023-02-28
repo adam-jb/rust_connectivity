@@ -39,11 +39,20 @@ async fn get_node_id_count(data: web::Data<AppState>) -> String {
 
 #[post("/floodfill_pt/")]
 async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-    println!("Floodfill request received");
-
     if input.year < 2022 {
-        return floodfill_pt_past_years(data, input);
+        assert!(input.graph_walk_additions.is_empty());
     }
+
+    if input.graph_walk_additions.is_empty()
+        && input.graph_pt_additions.is_empty()
+        && input.graph_walk_updates_keys.is_empty()
+        && input.graph_walk_updates_additions.is_empty()
+        && input.new_build_additions.is_empty()
+    {
+        return floodfill_pt_no_changes(data, input);
+    }
+
+    println!("Floodfill request received, with changes to the graphs");
 
     // Clone some objects, then modify them based on the input
     let mut graph_walk = data.graph_walk.clone();
@@ -151,9 +160,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 }
 
 // No changes to the graph allowed
-fn floodfill_pt_past_years(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
-    assert!(input.graph_walk_additions.is_empty());
-
+fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
+    println!("Floodfill request received, without changes");
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     let (node_values_1d, graph_walk, graph_pt, node_values_padding_row_count) =
