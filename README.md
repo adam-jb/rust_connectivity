@@ -14,9 +14,12 @@ Check it's listening:
 curl http://127.0.0.1:7328/
 ```
 
-Run PT algorithm on 5 start nodes: 
+Run PT algorithm on 3 start nodes: 
 ```
-wget -O- --post-data='{"start_nodes_user_input":[3556923, 3556924, 3556925,3556926,3556927],"init_travel_times_user_input":[4,5,6,3,434],"trip_start_seconds":80000,"p1_additions":[],"p2_additions":[]}' \
+wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "init_travel_times_user_input": [16, 10, 10], "trip_start_seconds": 28800, "graph_walk_additions": [], "graph_pt_additions": [], "new_nodes_count": 0, "graph_walk_updates_keys": [], "graph_walk_updates_additions": [], "year": 2022, "new_build_additions": [], "target_destinations": []}' \
   --header='Content-Type:application/json' \
   'http://127.0.0.1:7328/floodfill_pt/'
 ```
+
+
+
