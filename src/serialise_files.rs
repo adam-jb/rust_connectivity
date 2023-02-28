@@ -84,7 +84,7 @@ fn serialise_graph_pt_vector(year: i32, len_graph_walk: usize) {
     }
 
     for _ in graph_pt_vec.len()..len_graph_walk {
-        let mut edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
+        let edges: SmallVec<[EdgePT; 4]> = SmallVec::new();
         graph_pt_vec.push(edges);
     }
     assert!(graph_pt_vec.len() == len_graph_walk);

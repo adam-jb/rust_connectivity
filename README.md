@@ -1,6 +1,6 @@
 # Notes on running
 
-Run `./download_input.sh` once to download input data. Uncomment serialise_files() in main.rs to run
+Run `./download_input.sh` once to download input data. Flip the `if false` part to `serialise_files` in `main.rs`, and then `cargo run --release`
 
 The current version hosts an API, which accepts start node IDs and initial travel times. It requires about 3gb of RAM and loads in 3s on our GCE instance.
 
