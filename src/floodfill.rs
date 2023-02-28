@@ -3,34 +3,19 @@ use std::collections::{BinaryHeap, HashSet};
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
-use std::sync::Arc;
 
 pub fn floodfill(
-    (
-        graph_walk,
-        start,
-        node_values_1d,
-        travel_time_relationships,
-        subpurpose_purpose_lookup,
-        graph_pt,
-        trip_start_seconds,
-        init_travel_time,
-        count_original_nodes,
-        node_values_padding_row_count,
-        target_destinations_vector,
-    ): (
-        &Vec<SmallVec<[EdgeWalk; 4]>>,
-        NodeID,
-        &Vec<i32>,
-        &Arc<Vec<i32>>,
-        &[i8; 32],
-        &Vec<SmallVec<[EdgePT; 4]>>,
-        i32,
-        Cost,
-        u32,
-        u32,
-        &Vec<u32>,
-    ),
+    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    start: NodeID,
+    node_values_1d: &Vec<i32>,
+    travel_time_relationships: &Vec<i32>,
+    subpurpose_purpose_lookup: &[i8; 32],
+    trip_start_seconds: i32,
+    init_travel_time: Cost,
+    count_original_nodes: u32,
+    node_values_padding_row_count: u32,
+    target_destinations_vector: &Vec<u32>,
 ) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
     let time_limit: Cost = Cost(3600);
     let subpurposes_count: usize = 32 as usize;
