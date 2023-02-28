@@ -128,6 +128,8 @@ pub fn read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lo
     Vec<SmallVec<[EdgePT; 4]>>,
     u32,
 ) {
+    let now = Instant::now();
+    
     let (node_values_1d, (graph_walk, graph_pt)) = rayon::join(
         || deserialize_bincoded_file::<Vec<i32>>(&format!("padded_node_values_6am_{year}")),
         || {
