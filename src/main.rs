@@ -7,7 +7,8 @@ use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID, UserInputJSON};
 use floodfill::floodfill;
 use get_time_of_day_index::get_time_of_day_index;
 use read_files::{
-    read_files_serial, read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup,
+    read_files_parallel,
+    read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup,
 };
 
 mod floodfill;
@@ -216,7 +217,7 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_16,
         travel_time_relationships_19,
         subpurpose_purpose_lookup,
-    ) = read_files_serial(year);
+    ) = read_files_parallel(year);
 
     let travel_time_relationships_all = vec![
         travel_time_relationships_7,
