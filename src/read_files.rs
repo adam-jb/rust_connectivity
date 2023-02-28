@@ -120,7 +120,7 @@ pub fn _read_files_serial(
     )
 }
 
-pub fn read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup(
+pub fn read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(
     year: i32,
 ) -> (
     Vec<i32>,
@@ -128,22 +128,29 @@ pub fn read_files_serial_excluding_travel_time_relationships_and_subpurpose_look
     Vec<SmallVec<[EdgePT; 4]>>,
     u32,
 ) {
-    let now = Instant::now();
+    let (node_values_1d, (graph_walk, graph_pt)) = rayon::join(
+        || deserialize_bincoded_file::<Vec<i32>>(&format!("padded_node_values_6am_{year}")),
+        || {
+            rayon::join(
+                || {
+                    deserialize_bincoded_file::<Vec<SmallVec<[EdgeWalk; 4]>>>(&format!(
+                        "p1_main_nodes_vector_6am_{year}"
+                    ))
+                },
+                || {
+                    deserialize_bincoded_file::<Vec<SmallVec<[EdgePT; 4]>>>(&format!(
+                        "p2_main_nodes_vector_6am_{year}"
+                    ))
+                },
+            )
+        },
+    );
 
-    let padded_node_values_filename = format!("padded_node_values_6am_{}", year);
-    let p1_filename = format!("p1_main_nodes_vector_6am_{}", year);
-    let p2_filename = format!("p2_main_nodes_vector_6am_{}", year);
-    let node_values_padding_row_count_filename =
-        format!("node_values_padding_row_count_6am_{}", year);
-
-    let node_values_1d: Vec<i32> = deserialize_bincoded_file(&padded_node_values_filename);
-    let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> = deserialize_bincoded_file(&p1_filename);
-    let graph_pt: Vec<SmallVec<[EdgePT; 4]>> = deserialize_bincoded_file(&p2_filename);
     let node_values_padding_row_count: u32 =
-        deserialize_bincoded_file(&node_values_padding_row_count_filename);
+        deserialize_bincoded_file(&format!("node_values_padding_row_count_6am_{year}"));
 
     println!(
-        "Serial loading for files excluding travel time relationships took {:?}",
+        "Parallel loading for files excluding travel time relationships took {:?}",
         now.elapsed()
     );
     (

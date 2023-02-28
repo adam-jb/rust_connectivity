@@ -8,7 +8,7 @@ use floodfill::floodfill;
 use get_time_of_day_index::get_time_of_day_index;
 use read_files::{
     read_files_parallel,
-    read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup,
+    read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup,
 };
 
 mod floodfill;
@@ -52,7 +52,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     {
         return floodfill_pt_no_changes(data, input);
     }
-
+    
     println!("Floodfill request received, with changes to the graphs");
 
     // Clone some objects, then modify them based on the input
@@ -166,10 +166,10 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
     let (node_values_1d, graph_walk, graph_pt, node_values_padding_row_count) =
-        read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
+        read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
 
     println!("Got files read in for {}", input.year);
-
+    
     println!(
         "Started running floodfill\ttime_of_day_ix: {}\tNodes count: {}",
         time_of_day_ix,
@@ -201,7 +201,7 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    //read_files_parallel();
+
     if false {
         serialise_files::serialise_files_all_years();
     }
