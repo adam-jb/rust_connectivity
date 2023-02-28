@@ -19,5 +19,17 @@ wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "i
   'http://127.0.0.1:7328/floodfill_pt/'
 ```
 
+Run PT algorithm on 1000 start nodes using 2022 network: 
+```
+wget --post-file="example_payload_1000_start_nodes.json" \
+  --header='Content-Type:application/json' \
+  'http://127.0.0.1:7328/floodfill_pt/'
+```
 
 
+Run PT algorithm on 1000 start nodes using 2019 network: 
+```
+wget --post-file="example_payload_1000_start_nodes_2019.json" \
+  --header='Content-Type:application/json' \
+  'http://127.0.0.1:7328/floodfill_pt/'
+```
