@@ -1,4 +1,5 @@
 use fs_err::File;
+use rayon::prelude::*;
 use serde::de::DeserializeOwned;
 use smallvec::SmallVec;
 use std::io::BufReader;
@@ -6,22 +7,68 @@ use std::time::Instant;
 
 use crate::shared::{EdgePT, EdgeWalk};
 
-/*
-pub fn read_files_parallel() {
-    let year = 2022;
-    let padded_node_values_filename = format!("padded_node_values_6am_{}", year);
-    let p1_filename = format!("p1_main_nodes_vector_6am_{}", year);
+pub fn read_files_parallel(
+    year: i32,
+) -> (
+    Vec<i32>,
+    Vec<SmallVec<[EdgeWalk; 4]>>,
+    Vec<SmallVec<[EdgePT; 4]>>,
+    u32,
+    Vec<i32>,
+    Vec<i32>,
+    Vec<i32>,
+    Vec<i32>,
+    [i8; 32],
+) {
+    let now = Instant::now();
 
-    let mut map: Vec<Box<dyn Display + 'static>> = Vec::new();
+    // These're absolutely tiny
+    let node_values_padding_row_count: u32 =
+        deserialize_bincoded_file(&format!("node_values_padding_row_count_6am_{year}"));
+    let subpurpose_purpose_lookup: [i8; 32] =
+        deserialize_bincoded_file("subpurpose_purpose_lookup");
 
+    // These're < 100KB. Loading in parallel is honestly overkill.
+    let mut travel_time_relationships: Vec<Vec<i32>> = vec![7, 10, 16, 19]
+        .par_iter()
+        .map(|i| deserialize_bincoded_file(&format!("travel_time_relationships_{i}")))
+        .collect();
 
-    rayon::join(|| let node_values_1d: Vec<i32> = deserialize_bincoded_file(&padded_node_values_filename),
-               || let graph_walk: Vec<SmallVec<[EdgeWalk; 4]>> = deserialize_bincoded_file(&p1_filename));
+    // There are 3 big files worth loading in parallel. They have different types, so par_iter
+    // doesn't work. https://github.com/rayon-rs/rayon/issues/865 would make this nicer to write.
+    let (node_values_1d, (graph_walk, graph_pt)) = rayon::join(
+        || deserialize_bincoded_file::<Vec<i32>>(&format!("padded_node_values_6am_{year}")),
+        || {
+            rayon::join(
+                || {
+                    deserialize_bincoded_file::<Vec<SmallVec<[EdgeWalk; 4]>>>(&format!(
+                        "p1_main_nodes_vector_6am_{year}"
+                    ))
+                },
+                || {
+                    deserialize_bincoded_file::<Vec<SmallVec<[EdgePT; 4]>>>(&format!(
+                        "p2_main_nodes_vector_6am_{year}"
+                    ))
+                },
+            )
+        },
+    );
 
+    println!("Parallel loading took {:?}", now.elapsed());
+    (
+        node_values_1d,
+        graph_walk,
+        graph_pt,
+        node_values_padding_row_count,
+        travel_time_relationships.remove(0),
+        travel_time_relationships.remove(0),
+        travel_time_relationships.remove(0),
+        travel_time_relationships.remove(0),
+        subpurpose_purpose_lookup,
+    )
 }
-*/
 
-pub fn read_files_serial(
+pub fn _read_files_serial(
     year: i32,
 ) -> (
     Vec<i32>,
