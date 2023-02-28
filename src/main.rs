@@ -5,16 +5,18 @@ use serde::{Deserialize};
 use std::sync::{Arc, Mutex};
 use actix_web::{get, post, web, App, HttpServer};
 
-use crate::shared::{Cost, LeavingTime, EdgePT, EdgeWalk, NodeID};
+use crate::shared::{Cost, LeavingTime, EdgePT, EdgeWalk, NodeID, UserInputJSON};
 use floodfill::floodfill;
 use read_files::{read_files_serial, read_files_serial_excluding_travel_time_relationships_and_subpurpose_lookup};
 use get_time_of_day_index::get_time_of_day_index;
+//use add_edges_and_values::add_new_node_values;
 
 mod floodfill;
 mod priority_queue;
 mod read_files;
 mod shared;
 mod get_time_of_day_index;
+//mod add_edges_and_values;
 
 //use serialise_files::serialise_files_all_years;
 //mod serialise_files;
@@ -26,21 +28,6 @@ struct AppState {
     graph_walk: Arc<Mutex<Vec<SmallVec<[EdgeWalk; 4]>>>>,
     graph_pt: Arc<Mutex<Vec<SmallVec<[EdgePT; 4]>>>>,
     node_values_padding_row_count: u32,
-}
-
-#[derive(Deserialize)]
-struct UserInputJSON {
-    start_nodes_user_input: Vec<i32>,
-    init_travel_times_user_input: Vec<i32>,
-    trip_start_seconds: i32,
-    graph_walk_additions: Vec<Vec<[usize; 2]>>,
-    graph_pt_additions: Vec<Vec<[usize; 2]>>,
-    new_nodes_count: usize,
-    graph_walk_updates_keys: Vec<usize>,
-    graph_walk_updates_additions: Vec<Vec<[usize; 2]>>,
-    year: i32,
-    new_build_additions: Vec<Vec<i32>>,
-    target_destinations: Vec<u32>,
 }
 
 #[get("/")]
@@ -69,6 +56,15 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let mut graph_pt_guard = data.graph_pt.lock().unwrap();
     let mut node_values_1d_guard = data.node_values_1d.lock().unwrap();
     let original_node_values_1d_len = node_values_1d_guard.len().clone();
+    
+    /*
+    pub fn add_new_edges(
+        graph_walk_guard,
+        graph_pt_guard,
+        node_values_1d_guard,
+        input,
+    )
+    */
 
     let len_graph_walk = graph_walk_guard.len();
     let len_graph_pt = graph_pt_guard.len();
@@ -124,6 +120,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     assert!(node_values_1d_guard.len() == expected_len);
     //}
     
+    
+
     println!("input.new_build_additions.len(): {}", input.new_build_additions.len());
     if input.new_build_additions.len() >= 1 {
         for new_build in &input.new_build_additions {
@@ -133,15 +131,15 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
             let ix = (index_of_nearest_node * 32) + column_to_change;
             node_values_1d_guard[ix as usize] += value_to_add;
         }
+        //node_values_1d_guard = add_new_node_values(node_values_1d_guard,&input);
     }
+    
     
     let time_of_day_ix:usize = get_time_of_day_index(input.trip_start_seconds);
     let mut model_parameters_each_start = Vec::new();
-    
     let arc_node_values_1d: Arc<Mutex<Vec<i32>>>;
     let arc_graph_walk: Arc<Mutex<Vec<SmallVec<[EdgeWalk; 4]>>>>;
     let arc_graph_pt: Arc<Mutex<Vec<SmallVec<[EdgePT; 4]>>>>;
-    
     let parallel_res: Vec<(i32, u32, [i64; 32], Vec<u32>, Vec<u16>)>;
     
     // functionalise or split into two apis
@@ -172,12 +170,12 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         println!("Creating tuples to pass to floodfill for {} data", input.year);
         for i in 0..input.start_nodes_user_input.len() {
             model_parameters_each_start.push((
-                graph_walk_unguarded, //&arc_graph_walk,
+                graph_walk_unguarded,
                 NodeID(input.start_nodes_user_input[i] as u32),
-                node_values_1d_unguarded, //&arc_node_values_1d,
+                node_values_1d_unguarded,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
-                graph_pt_unguarded, // &arc_graph_pt.lock().unwrap(),
+                graph_pt_unguarded,
                 input.trip_start_seconds,
                 Cost(input.init_travel_times_user_input[i] as u16),
                 count_original_nodes,
@@ -262,6 +260,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     
+    //read_files_parallel();
     //serialise_files_all_years();
     
     let year: i32 = 2022;
