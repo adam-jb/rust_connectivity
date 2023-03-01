@@ -238,7 +238,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_node_id_count)
             .service(floodfill_pt)
     })
-    .bind(("127.0.0.1", 7328))?
+    .bind(("0.0.0.0", 7328))?
     .run()
     .await
 }

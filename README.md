@@ -33,3 +33,11 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
   --header='Content-Type:application/json' \
   'http://127.0.0.1:7328/floodfill_pt/'
 ```
+
+
+# To make and run docker image (2022 only)
+```
+docker build -t rust_connectivity:deployment .
+docker run -p 127.0.0.1:7328:7328 rust_connectivity:deployment
+```
+
