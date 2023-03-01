@@ -36,8 +36,18 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
 
 
 # To make and run docker image (2022 only)
+
+Takes about 5 minutes to build
+
 ```
-docker build -t rust_connectivity:deployment .
+docker build --progress=plain -t rust_connectivity:deployment .
 docker run -p 127.0.0.1:7328:7328 rust_connectivity:deployment
+```
+
+
+# To deploy with Cloud Run in GCP Cloud Shell (2022 only)
+```
+gcloud config set run/region europe-west2
+gcloud run deploy rust-connectivity --port=7328 --cpu=4 --memory=8Gi --quiet --ignore-file=.dockerignore --source .
 ```
 
