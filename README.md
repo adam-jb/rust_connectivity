@@ -9,21 +9,21 @@ The current version hosts an API, which accepts start node IDs and initial trave
 
 Check it's listening:
 ```
-curl http://127.0.0.1:7328/
+curl http://0.0.0.0:7328/
 ```
 
 Run PT algorithm on 3 start nodes: 
 ```
 wget -O- --post-data='{"start_nodes_user_input": [9380647, 9183046, 2420336], "init_travel_times_user_input": [16, 10, 10], "trip_start_seconds": 28800, "graph_walk_additions": [], "graph_pt_additions": [], "new_nodes_count": 0, "graph_walk_updates_keys": [], "graph_walk_updates_additions": [], "year": 2022, "new_build_additions": [], "target_destinations": []}' \
   --header='Content-Type:application/json' \
-  'http://127.0.0.1:7328/floodfill_pt/'
+  'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
 Run PT algorithm on 1000 start nodes using 2022 network: 
 ```
 wget --post-file="example_payload_1000_start_nodes.json" \
   --header='Content-Type:application/json' \
-  'http://127.0.0.1:7328/floodfill_pt/'
+  'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
 
@@ -31,7 +31,7 @@ Run PT algorithm on 1000 start nodes using 2019 network:
 ```
 wget --post-file="example_payload_1000_start_nodes_2019.json" \
   --header='Content-Type:application/json' \
-  'http://127.0.0.1:7328/floodfill_pt/'
+  'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
 
@@ -41,13 +41,27 @@ Takes about 5 minutes to build
 
 ```
 docker build --progress=plain -t rust_connectivity:deployment .
-docker run -p 127.0.0.1:7328:7328 rust_connectivity:deployment
+docker run -p 0.0.0.0:7328:7328 rust_connectivity:deployment
 ```
 
 
-# To deploy with Cloud Run in GCP Cloud Shell (2022 only)
+# To push build image to dockerhub (2022 only)
 ```
-gcloud config set run/region europe-west2
-gcloud run deploy rust-connectivity --port=7328 --cpu=4 --memory=8Gi --quiet --source .
+docker tag connectivity_rust:latest adambricknell/connectivity_rust
+docker push adambricknell/connectivity_rust
 ```
 
+
+# To pull from dockerhub and deploy with Cloud Run (2022 only)
+```
+docker pull adambricknell/connectivity_rust:latest
+
+docker tag adambricknell/connectivity_rust gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
+
+docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
+
+gcloud run deploy connectivity-rust \ 
+  --image=gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest \
+  --allow-unauthenticated \
+  --port 7328 --cpu 8 --memory 8G --quiet
+```
