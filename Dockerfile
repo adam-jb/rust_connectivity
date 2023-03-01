@@ -31,7 +31,7 @@ COPY --from=build /app/target/release/rust_connectivity .
 COPY --from=build /app/src/* src/
 
 # Copy serialised data to be used by app
-COPY --from=build /app/serialised_data/* serialised_data/
+#COPY --from=build /app/serialised_data/* serialised_data/
 
 # Set the command to run the Actix Web server
 CMD ["./rust_connectivity"]
