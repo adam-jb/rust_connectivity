@@ -312,19 +312,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "connectivity_rust"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "bincode",
- "fs-err",
- "rayon",
- "serde",
- "serde_json",
- "smallvec",
-]
-
-[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -885,6 +872,19 @@ name = "regex-syntax"
 version = "0.6.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
+
+[[package]]
+name = "rust_connectivity"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "bincode",
+ "fs-err",
+ "rayon",
+ "serde",
+ "serde_json",
+ "smallvec",
+]
 
 [[package]]
 name = "rustc_version"

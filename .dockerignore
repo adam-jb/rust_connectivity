@@ -1,5 +1,6 @@
 data/*
 target/*
+index.*
 serialised_data/*2016.bin
 serialised_data/*2017.bin
 serialised_data/*2018.bin
