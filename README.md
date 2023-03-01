@@ -47,8 +47,8 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
 To make and run docker image (2022 only)
 ```
 # Takes about 5 minutes to build
-docker build --progress=plain -t rust_connectivity:deployment .
-docker run -p 0.0.0.0:7328:7328 rust_connectivity:deployment
+docker build --progress=plain -t rust_connectivity:latest .
+docker run -p 0.0.0.0:7328:7328 rust_connectivity:latest
 ```
 
 To push build image to dockerhub (2022 only)
