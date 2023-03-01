@@ -1,6 +1,14 @@
 # Notes on running
 
-Run `./download_input.sh` once to download input data. Flip the `if false` part to `serialise_files` in `main.rs`, and then `cargo run --release`
+To get started:
+
+1. Run `./download_input.sh` once to download input data
+
+2. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `main.rs` to `true` so the files are serialised
+
+3. Run with`cargo run --release`
+
+For subsequent runs, you can flip the `if false` parts of `main.rs` back to `false` to speed up load time.
 
 The current version hosts an API, which accepts start node IDs and initial travel times. It requires about 3gb of RAM and loads in 3s on our GCE instance.
 
