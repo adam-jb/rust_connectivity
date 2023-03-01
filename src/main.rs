@@ -7,8 +7,10 @@ use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID, UserInputJSON};
 use floodfill::floodfill;
 use get_time_of_day_index::get_time_of_day_index;
 use read_files::{
-    read_files_parallel,
+    read_small_files_serial,
     read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup,
+    deserialize_bincoded_file,
+    create_graph_walk_len,
 };
 
 mod floodfill;
@@ -19,12 +21,8 @@ mod serialise_files;
 mod shared;
 
 struct AppState {
-    node_values_1d: Vec<i32>,
     travel_time_relationships_all: Vec<Vec<i32>>,
     subpurpose_purpose_lookup: [i8; 32],
-    graph_walk: Vec<SmallVec<[EdgeWalk; 4]>>,
-    graph_pt: Vec<SmallVec<[EdgePT; 4]>>,
-    node_values_padding_row_count: u32,
 }
 
 #[get("/")]
@@ -33,9 +31,11 @@ async fn index() -> String {
 }
 
 #[get("/get_node_id_count/")]
-async fn get_node_id_count(data: web::Data<AppState>) -> String {
-    let count_original_nodes = data.graph_walk.len();
-    return serde_json::to_string(&count_original_nodes).unwrap();
+async fn get_node_id_count() -> String {
+    //let count_original_nodes = data.graph_walk_len;
+    let year: i32 = 2022;   //// TODO change this dynamically depending on when user hits this api... OR drop this from Rust api and store in py
+    let graph_walk_len: i32 = deserialize_bincoded_file(&format!("graph_walk_len_{year}"));
+    return serde_json::to_string(&graph_walk_len).unwrap();
 }
 
 #[post("/floodfill_pt/")]
@@ -55,10 +55,9 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     println!("Floodfill request received, with changes to the graphs");
 
-    // Clone some objects, then modify them based on the input
-    let mut graph_walk = data.graph_walk.clone();
-    let mut graph_pt = data.graph_pt.clone();
-    let mut node_values_1d = data.node_values_1d.clone();
+    // Read in files to be modified
+    let (mut node_values_1d, mut graph_walk, mut graph_pt, node_values_padding_row_count) =
+        read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
 
     let len_graph_walk = graph_walk.len();
     let len_graph_pt = graph_pt.len();
@@ -114,17 +113,16 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         "input.new_build_additions.len(): {}",
         input.new_build_additions.len()
     );
-    // TODO Redundant conditional?
-    if input.new_build_additions.len() >= 1 {
-        for new_build in &input.new_build_additions {
-            let value_to_add = new_build[0];
-            let index_of_nearest_node = new_build[1];
-            let column_to_change = new_build[2];
-            let ix = (index_of_nearest_node * 32) + column_to_change;
-            node_values_1d[ix as usize] += value_to_add;
-        }
-        //node_values_1d_guard = add_new_node_values(node_values_1d_guard,&input);
+    // TODO Redundant conditional? (Adam in response - the below is edited to fix this; keeping comment in case error shows)
+    //if input.new_build_additions.len() >= 1 {
+    for new_build in &input.new_build_additions {
+        let value_to_add = new_build[0];
+        let index_of_nearest_node = new_build[1];
+        let column_to_change = new_build[2];
+        let ix = (index_of_nearest_node * 32) + column_to_change;
+        node_values_1d[ix as usize] += value_to_add;
     }
+    //}
 
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
@@ -150,7 +148,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
                 input.trip_start_seconds,
                 Cost(input.init_travel_times_user_input[*i] as u16),
                 count_original_nodes,
-                data.node_values_padding_row_count,
+                node_values_padding_row_count,
                 &input.target_destinations,
             )
         })
@@ -201,23 +199,23 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    
+    let year: i32 = 2022;
 
     if false {
         serialise_files::serialise_files_all_years();
     }
-
-    let year: i32 = 2022;
+    if false {
+        create_graph_walk_len(year); 
+    }
+    
     let (
-        node_values_1d,
-        graph_walk,
-        graph_pt,
-        node_values_padding_row_count,
         travel_time_relationships_7,
         travel_time_relationships_10,
         travel_time_relationships_16,
         travel_time_relationships_19,
         subpurpose_purpose_lookup,
-    ) = read_files_parallel(year);
+    ) = read_small_files_serial();
 
     let travel_time_relationships_all = vec![
         travel_time_relationships_7,
@@ -226,12 +224,8 @@ async fn main() -> std::io::Result<()> {
         travel_time_relationships_19,
     ];
     let app_state = web::Data::new(AppState {
-        node_values_1d,
         travel_time_relationships_all,
         subpurpose_purpose_lookup,
-        graph_walk,
-        graph_pt,
-        node_values_padding_row_count,
     });
     HttpServer::new(move || {
         App::new()

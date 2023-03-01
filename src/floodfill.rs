@@ -35,6 +35,11 @@ pub fn floodfill(
     for node_id in target_destinations_vector {
         target_destinations_set.insert(*node_id);
     }
+    
+    let mut storing_destination_travel_times = false;
+    if target_destinations_vector.len() >= 1 {
+        storing_destination_travel_times = true;
+    }
 
     let mut destination_ids: Vec<u32> = vec![];
     let mut destination_travel_times: Vec<u16> = vec![];
@@ -60,9 +65,11 @@ pub fn floodfill(
             continue;
         }
 
-        if target_destinations_set.contains(&current.value.0) {
-            destination_ids.push(current.value.0);
-            destination_travel_times.push(current.cost.0);
+        if storing_destination_travel_times {
+            if target_destinations_set.contains(&current.value.0) {
+                destination_ids.push(current.value.0);
+                destination_travel_times.push(current.cost.0);
+            }
         }
 
         nodes_visited.insert(current.value);
