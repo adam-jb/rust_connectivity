@@ -42,25 +42,22 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
   'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
+# Deploying with Docker
 
-# To make and run docker image (2022 only)
-
-Takes about 5 minutes to build
-
+To make and run docker image (2022 only)
 ```
+# Takes about 5 minutes to build
 docker build --progress=plain -t rust_connectivity:deployment .
 docker run -p 0.0.0.0:7328:7328 rust_connectivity:deployment
 ```
 
-
-# To push build image to dockerhub (2022 only)
+To push build image to dockerhub (2022 only)
 ```
 docker tag connectivity_rust:latest adambricknell/connectivity_rust
 docker push adambricknell/connectivity_rust
 ```
 
-
-# To pull from dockerhub and deploy with Cloud Run (2022 only)
+To pull from dockerhub and deploy with Cloud Run (2022 only)
 ```
 docker pull adambricknell/connectivity_rust:latest
 
