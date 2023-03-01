@@ -1,6 +1,4 @@
-# Notes on running
-
-To get started:
+# Getting started
 
 1. Run `./download_input.sh` once to download input data
 
