@@ -48,6 +48,6 @@ docker run -p 127.0.0.1:7328:7328 rust_connectivity:deployment
 # To deploy with Cloud Run in GCP Cloud Shell (2022 only)
 ```
 gcloud config set run/region europe-west2
-gcloud run deploy rust-connectivity --port=7328 --cpu=4 --memory=8Gi --quiet --ignore-file=.dockerignore --source .
+gcloud run deploy rust-connectivity --port=7328 --cpu=4 --memory=8Gi --quiet --source .
 ```
 
