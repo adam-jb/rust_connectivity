@@ -1,26 +1,17 @@
 use std::collections::{BinaryHeap, HashSet};
-
 use crate::priority_queue::PriorityQueueItem;
 use crate::shared::{Cost, EdgePT, EdgeWalk, NodeID};
 use smallvec::SmallVec;
 
-pub fn floodfill(
+pub fn get_travel_times(
     graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     start: NodeID,
-    node_values_1d: &Vec<i32>,
-    travel_time_relationships: &Vec<i32>,
-    subpurpose_purpose_lookup: &[i8; 32],
     trip_start_seconds: i32,
     init_travel_time: Cost,
-    count_original_nodes: u32,
-    node_values_padding_row_count: u32,
-    target_destinations_vector: &Vec<u32>,
-) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
+) -> (u32, Vec<u32>, Vec<u16>) {
+    
     let time_limit: Cost = Cost(3600);
-    let subpurposes_count: usize = 32 as usize;
-
-    let count_nodes_no_value = node_values_padding_row_count / 32;
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
@@ -28,33 +19,14 @@ pub fn floodfill(
         value: start,
     });
     let mut nodes_visited = HashSet::new();
-    let mut total_iters = 0;
-
-    let mut target_destinations_set: HashSet<u32> = HashSet::new();
-
-    for node_id in target_destinations_vector {
-        target_destinations_set.insert(*node_id);
-    }
-    
-    let mut storing_destination_travel_times = false;
-    if target_destinations_vector.len() >= 1 {
-        storing_destination_travel_times = true;
-    }
-
     let mut destination_ids: Vec<u32> = vec![];
     let mut destination_travel_times: Vec<u16> = vec![];
 
-    let mut scores: [i64; 32] = [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0,
-    ];
 
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(3600) {
         return (
-            total_iters,
             start.0,
-            scores,
             destination_ids,
             destination_travel_times,
         );
@@ -65,27 +37,10 @@ pub fn floodfill(
             continue;
         }
 
-        if storing_destination_travel_times {
-            if target_destinations_set.contains(&current.value.0) {
-                destination_ids.push(current.value.0);
-                destination_travel_times.push(current.cost.0);
-            }
-        }
+        destination_ids.push(current.value.0);
+        destination_travel_times.push(current.cost.0);
 
         nodes_visited.insert(current.value);
-
-        // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
-        if count_original_nodes >= current.value.0 && current.value.0 >= count_nodes_no_value {
-            get_scores(
-                current.value.0,
-                &node_values_1d,
-                current.cost.0,
-                travel_time_relationships,
-                subpurpose_purpose_lookup,
-                subpurposes_count,
-                &mut scores,
-            );
-        }
 
         // Finding adjacent walk nodes
         // skip 1st edge as it has info on whether node also has a PT service
@@ -112,39 +67,14 @@ pub fn floodfill(
             );
         }
 
-        total_iters += 1;
     }
     return (
-        total_iters,
         start.0,
-        scores,
         destination_ids,
         destination_travel_times,
     );
 }
 
-fn get_scores(
-    node_id: u32,
-    node_values_1d: &Vec<i32>,
-    time_so_far: u16,
-    travel_time_relationships: &Vec<i32>,
-    subpurpose_purpose_lookup: &[i8; 32],
-    subpurposes_count: usize,
-    scores: &mut [i64; 32],
-) {
-    // to subset node_values_1d
-    let start_pos = node_id * 32;
-
-    // 32 subpurposes
-    for i in 0..subpurposes_count {
-        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 3601;
-        let multiplier =
-            travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
-
-        scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
-    }
-    //}
-}
 
 fn get_pt_connections(
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
@@ -187,5 +117,95 @@ fn get_pt_connections(
                 value: NodeID(*destination_node as u32),
             });
         };
+    }
+}
+
+
+
+pub fn get_all_scores_and_time_to_target_destinations(
+    travel_times: &(u32, Vec<u32>, Vec<u16>), // nodeID, destination node IDs, travel times to destinations
+    node_values_1d: &Vec<i32>,
+    travel_time_relationships: &Vec<i32>,
+    subpurpose_purpose_lookup: &[i8; 32],
+    count_original_nodes: u32,
+    node_values_padding_row_count: u32,
+    target_destinations_vector: &Vec<u32>,
+) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
+
+    let subpurposes_count: usize = 32 as usize;
+    let count_nodes_no_value = node_values_padding_row_count / 32;
+    
+    let mut target_destinations_set: HashSet<u32> = HashSet::new();
+    for node_id in target_destinations_vector {
+        target_destinations_set.insert(*node_id);
+    }
+    
+    let mut scores: [i64; 32] = [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0,
+    ];
+    
+    let mut target_destination_ids: Vec<u32> = vec![];
+    let mut target_destination_travel_times: Vec<u16> = vec![];
+    
+    let start = travel_times.0;
+    
+    let destination_ids = &travel_times.1;
+    let destination_travel_times = &travel_times.2;
+    
+    for i in 0..destination_ids.len() {
+        
+        let current_node = destination_ids[i];
+        let current_cost = destination_travel_times[i];
+        
+        // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
+        if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
+            get_scores(
+                current_node,
+                &node_values_1d,
+                current_cost,
+                travel_time_relationships,
+                subpurpose_purpose_lookup,
+                subpurposes_count,
+                &mut scores,
+            );
+        }
+                
+        if target_destinations_set.contains(&current_node) {
+            target_destination_ids.push(current_node);
+            target_destination_travel_times.push(current_cost);
+        }
+    }
+    
+    return (
+        travel_times.1.len() as i32,
+        start,
+        scores,
+        target_destination_ids,
+        target_destination_travel_times,
+    );
+
+}
+
+
+fn get_scores(
+    node_id: u32,
+    node_values_1d: &Vec<i32>,
+    time_so_far: u16,
+    travel_time_relationships: &Vec<i32>,
+    subpurpose_purpose_lookup: &[i8; 32],
+    subpurposes_count: usize,
+    scores: &mut [i64; 32],
+) {
+    // to subset node_values_1d
+    let start_pos = node_id * 32;
+
+    // 32 subpurposes
+    for i in 0..subpurposes_count {
+        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 3601;
+        let multiplier =
+            travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
+
+        scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
     }
 }

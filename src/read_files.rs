@@ -7,6 +7,44 @@ use std::time::Instant;
 
 use crate::shared::{EdgePT, EdgeWalk};
 
+
+pub fn read_files_parallel_excluding_node_values(
+    year: i32,
+) -> (
+    Vec<SmallVec<[EdgeWalk; 4]>>,
+    Vec<SmallVec<[EdgePT; 4]>>,
+    u32,
+) {
+    let now = Instant::now();
+
+    let (graph_walk, graph_pt) = rayon::join(
+                || {
+                    deserialize_bincoded_file::<Vec<SmallVec<[EdgeWalk; 4]>>>(&format!(
+                        "p1_main_nodes_vector_6am_{year}"
+                    ))
+                },
+                || {
+                    deserialize_bincoded_file::<Vec<SmallVec<[EdgePT; 4]>>>(&format!(
+                        "p2_main_nodes_vector_6am_{year}"
+                    ))
+                },
+            );
+
+    let node_values_padding_row_count: u32 =
+        deserialize_bincoded_file(&format!("node_values_padding_row_count_6am_{year}"));
+
+    println!(
+        "Parallel loading for files excluding travel time relationships took {:?}",
+        now.elapsed()
+    );
+    (
+        graph_walk,
+        graph_pt,
+        node_values_padding_row_count,
+    )
+}
+
+
 pub fn read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(
     year: i32,
 ) -> (
@@ -16,7 +54,7 @@ pub fn read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lo
     u32,
 ) {
     let now = Instant::now();
-    
+
     let (node_values_1d, (graph_walk, graph_pt)) = rayon::join(
         || deserialize_bincoded_file::<Vec<i32>>(&format!("padded_node_values_6am_{year}")),
         || {
@@ -50,15 +88,9 @@ pub fn read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lo
     )
 }
 
-pub fn read_small_files_serial() -> (
-    Vec<i32>,
-    Vec<i32>,
-    Vec<i32>,
-    Vec<i32>,
-    [i8; 32],
-) {
+pub fn read_small_files_serial() -> (Vec<i32>, Vec<i32>, Vec<i32>, Vec<i32>, [i8; 32]) {
     let now = Instant::now();
-    
+
     let travel_time_relationships_7: Vec<i32> =
         deserialize_bincoded_file("travel_time_relationships_7");
     let travel_time_relationships_10: Vec<i32> =
@@ -88,17 +120,16 @@ pub fn deserialize_bincoded_file<T: DeserializeOwned>(filename: &str) -> T {
 
 pub fn create_graph_walk_len(year: i32) {
     let graph_walk = deserialize_bincoded_file::<Vec<SmallVec<[EdgeWalk; 4]>>>(&format!(
-                        "p1_main_nodes_vector_6am_{year}"
-                    ));
-    
+        "p1_main_nodes_vector_6am_{year}"
+    ));
+
     let graph_walk_len = graph_walk.len();
-    
+
     let outpath = format!("serialised_data/graph_walk_len_{}.bin", year);
     let file = BufWriter::new(File::create(&outpath).unwrap());
     bincode::serialize_into(file, &graph_walk_len).unwrap();
     println!("Created graph_walk_len at {}", outpath);
 }
-
 
 /*
 pub fn read_files_parallel(

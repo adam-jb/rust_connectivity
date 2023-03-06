@@ -4,9 +4,10 @@ use smallvec::SmallVec;
 use std::time::Instant;
 
 use crate::shared::{Cost, EdgePT, EdgeWalk, LeavingTime, NodeID, UserInputJSON};
-use floodfill::floodfill;
+use floodfill::{get_travel_times, get_all_scores_and_time_to_target_destinations};
 use get_time_of_day_index::get_time_of_day_index;
 use read_files::{
+    read_files_parallel_excluding_node_values,
     read_small_files_serial,
     read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup,
     deserialize_bincoded_file,
@@ -43,7 +44,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     if input.year < 2022 {
         assert!(input.graph_walk_additions.is_empty());
     }
-
+ 
     if input.graph_walk_additions.is_empty()
         && input.graph_pt_additions.is_empty()
         && input.graph_walk_updates_keys.is_empty()
@@ -55,9 +56,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     println!("Floodfill request received, with changes to the graphs");
 
-    // Read in files to be modified
+    // Read in files
+    let (mut graph_walk, mut graph_pt, mut node_values_padding_row_count) =
+        read_files_parallel_excluding_node_values(input.year);
+    /*
     let (mut node_values_1d, mut graph_walk, mut graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
+    */
 
     let len_graph_walk = graph_walk.len();
     let len_graph_pt = graph_pt.len();
@@ -101,28 +106,10 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         graph_walk[node] = edges;
     }
 
-    for _i in 0..input.graph_walk_additions.len() {
-        for _ in 0..32 {
-            node_values_1d.push(0);
-        }
-    }
-    let expected_len = graph_walk.len() * 32;
-    assert!(node_values_1d.len() == expected_len);
-
     println!(
         "input.new_build_additions.len(): {}",
         input.new_build_additions.len()
     );
-    // TODO Redundant conditional? (Adam in response - the below is edited to fix this; keeping comment in case error shows)
-    //if input.new_build_additions.len() >= 1 {
-    for new_build in &input.new_build_additions {
-        let value_to_add = new_build[0];
-        let index_of_nearest_node = new_build[1];
-        let column_to_change = new_build[2];
-        let ix = (index_of_nearest_node * 32) + column_to_change;
-        node_values_1d[ix as usize] += value_to_add;
-    }
-    //}
 
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
@@ -133,67 +120,161 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         time_of_day_ix,
         input.start_nodes_user_input.len()
     );
+    
+    let now = Instant::now();
+    
+    let (mut node_values_1d, travel_times) = parallel_node_values_read_and_floodfill(
+        &graph_walk,
+        &graph_pt,
+        &input,
+    );
+        
+    println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
+    
+    /// Altering node_values to reflect changes in graph
+    for _i in 0..input.graph_walk_additions.len() {
+        for _ in 0..32 {
+            node_values_1d.push(0);
+        }
+    }
+    let expected_len = graph_walk.len() * 32;
+    assert!(node_values_1d.len() == expected_len);
+    
+    // TODO Redundant conditional? (Adam in response - the below is edited to fix this; keeping comment in case error shows)
+    //if input.new_build_additions.len() >= 1 {
+    for new_build in &input.new_build_additions {
+        let value_to_add = new_build[0];
+        let index_of_nearest_node = new_build[1];
+        let column_to_change = new_build[2];
+        let ix = (index_of_nearest_node * 32) + column_to_change;
+        node_values_1d[ix as usize] += value_to_add;
+    }
+    //}
+    
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
+    
     let results: Vec<(i32, u32, [i64; 32], Vec<u32>, Vec<u16>)> = indices
         .par_iter()
         .map(|i| {
-            floodfill(
-                &graph_walk,
-                &graph_pt,
-                NodeID(input.start_nodes_user_input[*i] as u32),
+            get_all_scores_and_time_to_target_destinations(
+                &travel_times[*i],
                 &node_values_1d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
-                input.trip_start_seconds,
-                Cost(input.init_travel_times_user_input[*i] as u16),
                 count_original_nodes,
                 node_values_padding_row_count,
                 &input.target_destinations,
             )
         })
         .collect();
-    println!("Parallel floodfill took {:?}", now.elapsed());
-
+    println!("Getting destinations and scores took {:?}", now.elapsed());
+    
     serde_json::to_string(&results).unwrap()
 }
 
+
+fn get_travel_times_multicore(
+    graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    input: &web::Json<UserInputJSON>
+) -> Vec<(u32, Vec<u32>, Vec<u16>)> {
+        
+    let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
+    
+    return indices
+        .par_iter()
+        .map(|i| {
+            get_travel_times(
+                &graph_walk,
+                &graph_pt,
+                NodeID(*&input.start_nodes_user_input[*i] as u32),
+                *&input.trip_start_seconds,
+                Cost(*&input.init_travel_times_user_input[*i] as u16),
+            )
+        })
+        .collect(); 
+}
+
+
+
+fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 4]>>,
+    graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
+    input: &web::Json<UserInputJSON>
+) -> (
+    Vec<i32>, 
+    Vec<(u32, Vec<u32>, Vec<u16>)>
+) {
+    
+    let node_values_filename = format!("padded_node_values_6am_{}", input.year);
+    
+    let (node_values_1d, travel_times) = rayon::join(
+            || {
+                deserialize_bincoded_file(&node_values_filename)
+            },
+            || {
+                get_travel_times_multicore(
+                    &graph_walk,
+                    &graph_pt,
+                    &input,
+                )
+            },
+        );
+    (node_values_1d, travel_times)
+}
+
+
+
 // No changes to the graph allowed
 fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInputJSON>) -> String {
+    
     println!("Floodfill request received, without changes");
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
 
-    let (node_values_1d, graph_walk, graph_pt, node_values_padding_row_count) =
-        read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
-
-    println!("Got files read in for {}", input.year);
+    let now = Instant::now();
+    
+    let (graph_walk, graph_pt, node_values_padding_row_count) =
+        read_files_parallel_excluding_node_values(input.year);
+    
+    println!("Graphs read in parallel {:?}", now.elapsed());
+        
+    let count_original_nodes = graph_walk.len() as u32;
     
     println!(
-        "Started running floodfill\ttime_of_day_ix: {}\tNodes count: {}",
+        "Started running floodfill and node values files read\ttime_of_day_ix: {}\tNodes count: {}",
         time_of_day_ix,
         input.start_nodes_user_input.len()
     );
+    
+    let now = Instant::now();
+    
+    let (node_values_1d, travel_times) = parallel_node_values_read_and_floodfill(
+        &graph_walk,
+        &graph_pt,
+        &input,
+    );
+        
+    println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
+    
     let now = Instant::now();
     let indices = (0..input.start_nodes_user_input.len()).collect::<Vec<_>>();
+    
     let results: Vec<(i32, u32, [i64; 32], Vec<u32>, Vec<u16>)> = indices
         .par_iter()
         .map(|i| {
-            floodfill(
-                &graph_walk,
-                &graph_pt,
-                NodeID(input.start_nodes_user_input[*i] as u32),
+            get_all_scores_and_time_to_target_destinations(
+                &travel_times[*i],
                 &node_values_1d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
-                input.trip_start_seconds,
-                Cost(input.init_travel_times_user_input[*i] as u16),
-                graph_walk.len() as u32,
+                count_original_nodes,
                 node_values_padding_row_count,
                 &input.target_destinations,
             )
         })
         .collect();
-    println!("Parallel floodfill took {:?}", now.elapsed());
+    println!("Getting destinations and scores took {:?}", now.elapsed());
+    
     serde_json::to_string(&results).unwrap()
 }
 
