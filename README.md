@@ -42,29 +42,22 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
 
 # Deploying with Docker
 
-To make and run docker image (2022 only)
+To make and run docker image
 ```
 # Takes about 5 minutes to build
 docker build --progress=plain -t rust_connectivity:latest .
 docker run -p 0.0.0.0:7328:7328 rust_connectivity:latest
 ```
 
-To push build image to dockerhub (2022 only)
+To push build image to dockerhub
 ```
 docker tag connectivity_rust:latest adambricknell/connectivity_rust
 docker push adambricknell/connectivity_rust
 ```
 
-To pull from dockerhub and deploy with Cloud Run (2022 only)
+To deploy with Cloud Run do the below, then use UI in GCP to deploy to Cloud Run
 ```
-docker pull adambricknell/connectivity_rust:latest
-
-docker tag adambricknell/connectivity_rust gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
-
+docker build --progress=plain -t rust_connectivity:latest .
+docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
-
-gcloud run deploy connectivity-rust \ 
-  --image=gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest \
-  --allow-unauthenticated \
-  --port 7328 --cpu 8 --memory 8G --quiet
 ```
