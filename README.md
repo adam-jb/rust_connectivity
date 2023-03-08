@@ -42,7 +42,7 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
 
 # Deploying with Docker
 
-To make and run docker image
+To make and run docker image. For networks from 2016 to 2022 the image is 15gb.
 ```
 # Takes about 5 minutes to build
 docker build --progress=plain -t rust_connectivity:latest .
@@ -61,3 +61,6 @@ docker build --progress=plain -t rust_connectivity:latest .
 docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
 ```
+
+
+

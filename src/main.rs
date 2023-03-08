@@ -235,9 +235,7 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
     
     let (graph_walk, graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_node_values(input.year);
-    
-    println!("Graphs read in parallel {:?}", now.elapsed());
-        
+            
     let count_original_nodes = graph_walk.len() as u32;
     
     println!(
