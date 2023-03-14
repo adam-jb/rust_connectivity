@@ -34,8 +34,8 @@ COPY --from=build /app/src/* src/
 COPY --from=build /app/serialised_data/* serialised_data/
 
 # Set calls to API running in background
-RUN chmod +x ./app/call_api_each_year.sh
-RUN ./app/call_api_each_year.sh &
+RUN chmod +x call_api_each_year.sh
+RUN ./call_api_each_year.sh &
 
 # Set the command to run the Actix Web server
 CMD ["./rust_connectivity"]
