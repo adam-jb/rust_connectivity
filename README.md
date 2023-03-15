@@ -48,7 +48,6 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
 
 To make and run docker image. For networks from 2016 to 2022 the image is 15gb.
 ```
-# Takes about 5 minutes to build
 docker build --progress=plain -t rust_connectivity:latest .
 docker run -p 0.0.0.0:7328:7328 rust_connectivity:latest
 ```
@@ -59,7 +58,7 @@ docker tag connectivity_rust:latest adambricknell/connectivity_rust
 docker push adambricknell/connectivity_rust
 ```
 
-To deploy with Cloud Run do the below, then use UI in GCP to deploy to Cloud Run
+To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
 ```
 docker build --progress=plain -t rust_connectivity:latest .
 docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
