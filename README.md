@@ -2,13 +2,17 @@
 
 1. Run `./download_input.sh` once to download input data
 
-2. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `main.rs` to `true` so the files are serialised
+2. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `src/main.rs` to `true` so the files are serialised
 
-3. Run with`cargo run --release`
+3. Run with`cargo run --release` to serialise all files. End the process once the API is listening
 
-For subsequent runs, you can flip the `if false` parts of `main.rs` back to `false` to speed up load time.
+4. Flip the `if false` part of `serialise_files` and `create_graph_walk_len` in `src/main.rs` to `false` to run without serialising any files
 
-The current version hosts an API, which accepts start node IDs and initial travel times. It requires about 3gb of RAM and loads in 3s on our GCE instance.
+5. Build with `cargo build --release`
+
+6. Run with `./target/release/rust_connectivity`
+
+The current version hosts an API, which accepts start node IDs and initial travel times. It requires about 3gb of RAM if you have no target destinations and loads in 10s on our GCE instance.
 
 
 # On querying the API
@@ -44,7 +48,6 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
 
 To make and run docker image. For networks from 2016 to 2022 the image is 15gb.
 ```
-# Takes about 5 minutes to build
 docker build --progress=plain -t rust_connectivity:latest .
 docker run -p 0.0.0.0:7328:7328 rust_connectivity:latest
 ```
@@ -55,7 +58,7 @@ docker tag connectivity_rust:latest adambricknell/connectivity_rust
 docker push adambricknell/connectivity_rust
 ```
 
-To deploy with Cloud Run do the below, then use UI in GCP to deploy to Cloud Run
+To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
 ```
 docker build --progress=plain -t rust_connectivity:latest .
 docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
