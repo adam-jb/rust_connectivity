@@ -33,7 +33,8 @@ COPY --from=build /app/src/* src/
 # Copy serialised data to be used by app
 COPY --from=build /app/serialised_data/* serialised_data/
 
-# Set calls to API running in background
+# Set calls to API running in background: an attempt to force caching of loaded files
+COPY --from=build /app/call_api_each_year.sh call_api_each_year.sh
 RUN chmod +x call_api_each_year.sh
 RUN ./call_api_each_year.sh &
 
