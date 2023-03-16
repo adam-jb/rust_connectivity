@@ -206,6 +206,6 @@ fn get_scores(
         let multiplier =
             travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
 
-        scores[i] += (node_values_1d[(start_pos as usize) + i] * multiplier) as i64;
+        scores[i] += ( (node_values_1d[(start_pos as usize) + i] as i64) * (multiplier as i64));
     }
 }
