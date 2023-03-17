@@ -9,7 +9,6 @@ use get_time_of_day_index::get_time_of_day_index;
 use read_files::{
     read_files_parallel_excluding_node_values,
     read_small_files_serial,
-    read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup,
     deserialize_bincoded_file,
     create_graph_walk_len,
 };
@@ -57,12 +56,8 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     println!("Floodfill request received, with changes to the graphs");
 
     // Read in files
-    let (mut graph_walk, mut graph_pt, mut node_values_padding_row_count) =
+    let (mut graph_walk, mut graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_node_values(input.year);
-    /*
-    let (mut node_values_1d, mut graph_walk, mut graph_pt, node_values_padding_row_count) =
-        read_files_parallel_excluding_travel_time_relationships_and_subpurpose_lookup(input.year);
-    */
 
     let len_graph_walk = graph_walk.len();
     let len_graph_pt = graph_pt.len();
@@ -131,7 +126,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         
     println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
     
-    /// Altering node_values to reflect changes in graph
+    // Altering node_values to reflect changes in graph
     for _i in 0..input.graph_walk_additions.len() {
         for _ in 0..32 {
             node_values_1d.push(0);
@@ -230,8 +225,6 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
     
     println!("Floodfill request received, without changes");
     let time_of_day_ix = get_time_of_day_index(input.trip_start_seconds);
-
-    let now = Instant::now();
     
     let (graph_walk, graph_pt, node_values_padding_row_count) =
         read_files_parallel_excluding_node_values(input.year);
@@ -281,10 +274,10 @@ async fn main() -> std::io::Result<()> {
     
     let year: i32 = 2022;
 
-    if false {
+    if true {
         serialise_files::serialise_files_all_years();
     }
-    if false {
+    if true {
         create_graph_walk_len(year); 
     }
     
