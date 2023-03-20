@@ -187,6 +187,7 @@ fn get_travel_times_multicore(
                 *&input.trip_start_seconds,
                 *&input.MaxTravelTime,
                 Cost(*&input.init_travel_times_user_input[*i] as u16),
+                *&input.target_destinations,
             )
         })
         .collect(); 
