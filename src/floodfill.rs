@@ -164,15 +164,18 @@ pub fn get_all_scores_and_time_to_target_destinations(
         
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
         if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
-            get_scores(
-                current_node,
-                &node_values_1d,
-                current_cost,
-                travel_time_relationships,
-                subpurpose_purpose_lookup,
-                subpurposes_count,
-                &mut scores,
-            );
+            
+            if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
+                
+                // this replaces get_scores()
+                let start_pos = current_node * 32;
+                for i in 0..subpurposes_count {
+                    let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[i] as i32) * 3601;
+                    let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + current_cost as i32) as usize];
+                    scores[i] += (node_values_1d[(start_pos as usize) + i] as i64) * (multiplier as i64);
+                }
+            }
+            
         }
                 
         if target_destinations_set.contains(&current_node) {
@@ -191,25 +194,3 @@ pub fn get_all_scores_and_time_to_target_destinations(
 
 }
 
-
-fn get_scores(
-    node_id: u32,
-    node_values_1d: &[i32], //&Vec<i32>,
-    time_so_far: u16,
-    travel_time_relationships: &[i32], //&Vec<i32>,
-    subpurpose_purpose_lookup: &[i8; 32],
-    subpurposes_count: usize,
-    scores: &mut [i64; 32],
-) {
-    // to subset node_values_1d
-    let start_pos = node_id * 32;
-
-    // 32 subpurposes
-    for i in 0..subpurposes_count {
-        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[i] as i32) * 3601;
-        let multiplier =
-            travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
-
-        scores[i] += (node_values_1d[(start_pos as usize) + i] as i64) * (multiplier as i64);
-    }
-}
