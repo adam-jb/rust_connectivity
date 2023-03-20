@@ -185,6 +185,7 @@ fn get_travel_times_multicore(
                 &graph_pt,
                 NodeID(*&input.start_nodes_user_input[*i] as u32),
                 *&input.trip_start_seconds,
+                *&input.MaxTravelTime,
                 Cost(*&input.init_travel_times_user_input[*i] as u16),
             )
         })
