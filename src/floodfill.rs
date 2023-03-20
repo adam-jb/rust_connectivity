@@ -124,26 +124,29 @@ fn get_pt_connections(
 
 pub fn get_all_scores_and_time_to_target_destinations(
     travel_times: &(u32, Vec<u32>, Vec<u16>), // nodeID, destination node IDs, travel times to destinations
-    node_values_1d: &Vec<i32>,
-    travel_time_relationships: &Vec<i32>,
+    node_values_1d: &[i32], //&Vec<i32>,
+    travel_time_relationships: &[i32], //&Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     count_original_nodes: u32,
     node_values_padding_row_count: u32,
-    target_destinations_vector: &Vec<u32>,
+    target_destinations_vector: &[u32], //&Vec<u32>,
 ) -> (i32, u32, [i64; 32], Vec<u32>, Vec<u16>) {
 
-    let subpurposes_count: usize = 32 as usize;
+    let subpurposes_count: usize = 32;
     let count_nodes_no_value = node_values_padding_row_count / 32;
     
-    let mut target_destinations_set: HashSet<u32> = HashSet::new();
+    let target_destinations_set: HashSet<u32> = target_destinations_vector.iter().cloned().collect();
+    // replacing the 4 lines below with the line above on the advice of gpt4
+    /*let mut target_destinations_set: HashSet<u32> = HashSet::new();
     for node_id in target_destinations_vector {
         target_destinations_set.insert(*node_id);
-    }
+    }*/
     
-    let mut scores: [i64; 32] = [
+    /*let mut scores: [i64; 32] = [
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0,
-    ];
+    ];*/
+    let mut scores: [i64; 32] = [0; 32];
     
     let mut target_destination_ids: Vec<u32> = vec![];
     let mut target_destination_travel_times: Vec<u16> = vec![];
@@ -153,10 +156,11 @@ pub fn get_all_scores_and_time_to_target_destinations(
     let destination_ids = &travel_times.1;
     let destination_travel_times = &travel_times.2;
     
-    for i in 0..destination_ids.len() {
-        
-        let current_node = destination_ids[i];
-        let current_cost = destination_travel_times[i];
+    for (&current_node, &current_cost) in destination_ids.iter().zip(destination_travel_times) {
+    // replaced 3 lines below with the one above on advice of gpt4
+    //for i in 0..destination_ids.len() {
+        //let current_node = destination_ids[i];
+        //let current_cost = destination_travel_times[i];
         
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
         if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
@@ -190,9 +194,9 @@ pub fn get_all_scores_and_time_to_target_destinations(
 
 fn get_scores(
     node_id: u32,
-    node_values_1d: &Vec<i32>,
+    node_values_1d: &[i32], //&Vec<i32>,
     time_so_far: u16,
-    travel_time_relationships: &Vec<i32>,
+    travel_time_relationships: &[i32], //&Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     subpurposes_count: usize,
     scores: &mut [i64; 32],
@@ -202,7 +206,7 @@ fn get_scores(
 
     // 32 subpurposes
     for i in 0..subpurposes_count {
-        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[(i as usize)] as i32) * 3601;
+        let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[i] as i32) * 3601;
         let multiplier =
             travel_time_relationships[(vec_start_pos_this_purpose + time_so_far as i32) as usize];
 

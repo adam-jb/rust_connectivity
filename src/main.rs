@@ -274,10 +274,10 @@ async fn main() -> std::io::Result<()> {
     
     let year: i32 = 2022;
 
-    if true {
+    if false {
         serialise_files::serialise_files_all_years();
     }
-    if true {
+    if false {
         create_graph_walk_len(year); 
     }
     
