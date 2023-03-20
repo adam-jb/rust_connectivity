@@ -8,10 +8,11 @@ pub fn get_travel_times(
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     start: NodeID,
     trip_start_seconds: i32,
+    MaxTravelTime: u16,
     init_travel_time: Cost,
 ) -> (u32, Vec<u32>, Vec<u16>) {
     
-    let time_limit: Cost = Cost(3600);
+    let time_limit: Cost = Cost(MaxTravelTime);
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
