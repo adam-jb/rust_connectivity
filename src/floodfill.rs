@@ -45,8 +45,15 @@ pub fn get_travel_times(
         destination_ids.push(current.value.0);
         destination_travel_times.push(current.cost.0);
         
-        // add here?
-
+        // end search when first destination is found  
+        if target_destinations_set.contains(&current.value.0) {
+            return (
+                start.0,
+                destination_ids,
+                destination_travel_times,
+            );
+        }
+            
         nodes_visited.insert(current.value);
 
         // Finding adjacent walk nodes
