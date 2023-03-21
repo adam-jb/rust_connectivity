@@ -8,12 +8,12 @@ pub fn get_travel_times(
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     start: NodeID,
     trip_start_seconds: i32,
-    MaxTravelTime: u16,
+    max_travel_time: u16,
     init_travel_time: Cost,
     target_destinations_vector: &[u32],
 ) -> (u32, Vec<u32>, Vec<u16>) {
     
-    let time_limit: Cost = Cost(MaxTravelTime);
+    let time_limit: Cost = Cost(max_travel_time);
 
     let mut queue: BinaryHeap<PriorityQueueItem<Cost, NodeID>> = BinaryHeap::new();
     queue.push(PriorityQueueItem {
@@ -28,7 +28,7 @@ pub fn get_travel_times(
     let target_destinations_set: HashSet<u32> = target_destinations_vector.iter().cloned().collect();
 
     // catch where start node is over an hour from centroid
-    if init_travel_time >= Cost(3600) {
+    if init_travel_time >= Cost(max_travel_time) {
         return (
             start.0,
             destination_ids,
@@ -39,13 +39,14 @@ pub fn get_travel_times(
     while let Some(current) = queue.pop() {
         
         // end search when first destination is found
-        if target_destinations_set.contains(&current_node) {
-            return (
-                start.0,
-                destination_ids,
-                destination_travel_times,
-            );
-        }
+        //println!("Skipping early stopping -- do I need to recompile?");
+        //if target_destinations_set.contains(&current.value.0) {
+        //    return (
+        //        start.0,
+        //        destination_ids,
+        //        destination_travel_times,
+        //    );
+        //}
         
         if nodes_visited.contains(&current.value) {
             continue;
@@ -53,6 +54,8 @@ pub fn get_travel_times(
 
         destination_ids.push(current.value.0);
         destination_travel_times.push(current.cost.0);
+        
+        // add here?
 
         nodes_visited.insert(current.value);
 

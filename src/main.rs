@@ -185,9 +185,9 @@ fn get_travel_times_multicore(
                 &graph_pt,
                 NodeID(*&input.start_nodes_user_input[*i] as u32),
                 *&input.trip_start_seconds,
-                *&input.MaxTravelTime,
+                *&input.max_travel_time,
                 Cost(*&input.init_travel_times_user_input[*i] as u16),
-                *&input.target_destinations,
+                &input.target_destinations,
             )
         })
         .collect(); 
