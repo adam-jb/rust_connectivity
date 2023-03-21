@@ -26,7 +26,7 @@ pub fn get_travel_times(
 
     
     let target_destinations_set: HashSet<u32> = target_destinations_vector.iter().cloned().collect();
-
+    
     // catch where start node is over an hour from centroid
     if init_travel_time >= Cost(max_travel_time) {
         return (
@@ -178,9 +178,9 @@ pub fn get_all_scores_and_time_to_target_destinations(
     //for i in 0..destination_ids.len() {
         //let current_node = destination_ids[i];
         //let current_cost = destination_travel_times[i];
-        
+
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
-        if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
+        if count_original_nodes >= current_node && current_node >= count_nodes_no_value && current_cost <= 3600 {
             
             if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
                 
@@ -193,7 +193,7 @@ pub fn get_all_scores_and_time_to_target_destinations(
                 }
             }
             
-        }
+        } 
                 
         if target_destinations_set.contains(&current_node) {
             target_destination_ids.push(current_node);
