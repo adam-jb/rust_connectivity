@@ -44,8 +44,6 @@ pub fn get_travel_times(
 
         destination_ids.push(current.value.0);
         destination_travel_times.push(current.cost.0);
-        
-        // add here?
 
         nodes_visited.insert(current.value);
 
