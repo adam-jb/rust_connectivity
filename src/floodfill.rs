@@ -27,7 +27,7 @@ pub fn get_travel_times(
     
     let target_destinations_set: HashSet<u32> = target_destinations_vector.iter().cloned().collect();
     
-    // catch where start node is over an hour from centroid
+    // catch where start node is over max travel time from centroid
     if init_travel_time >= Cost(max_travel_time) {
         return (
             start.0,
@@ -37,16 +37,6 @@ pub fn get_travel_times(
     }
 
     while let Some(current) = queue.pop() {
-        
-        // end search when first destination is found
-        //println!("Skipping early stopping -- do I need to recompile?");
-        //if target_destinations_set.contains(&current.value.0) {
-        //    return (
-        //        start.0,
-        //        destination_ids,
-        //        destination_travel_times,
-        //    );
-        //}
         
         if nodes_visited.contains(&current.value) {
             continue;
