@@ -18,7 +18,8 @@ pub fn get_travel_times(
         cost: init_travel_time,
         value: start,
     });
-    let mut nodes_visited = HashSet::new();
+    let mut nodes_visited = vec![false; graph_walk.len()];
+    //let mut nodes_visited = HashSet::new();
     let mut destination_ids: Vec<u32> = vec![];
     let mut destination_travel_times: Vec<u16> = vec![];
 
@@ -33,14 +34,17 @@ pub fn get_travel_times(
     }
 
     while let Some(current) = queue.pop() {
-        if nodes_visited.contains(&current.value) {
+        
+        if nodes_visited[current.value.0 as usize] {
+        //if nodes_visited.contains(&current.value) {
             continue;
         }
 
         destination_ids.push(current.value.0);
         destination_travel_times.push(current.cost.0);
 
-        nodes_visited.insert(current.value);
+        nodes_visited[current.value.0 as usize] = true;
+        //nodes_visited.insert(current.value);
 
         // Finding adjacent walk nodes
         // skip 1st edge as it has info on whether node also has a PT service
