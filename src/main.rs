@@ -119,7 +119,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     
     let now = Instant::now();
     
-    let (mut node_values_1d, travel_times) = parallel_node_values_read_and_floodfill(
+    let (mut node_values_2d, travel_times) = parallel_node_values_read_and_floodfill(
         &graph_walk,
         &graph_pt,
         &input,
@@ -128,6 +128,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     println!("Node values read in and floodfill in parallel {:?}", now.elapsed());
     
     // Altering node_values to reflect changes in graph
+    /*
     for _i in 0..input.graph_walk_additions.len() {
         for _ in 0..32 {
             node_values_1d.push(0);
@@ -135,9 +136,37 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     }
     let expected_len = graph_walk.len() * 32;
     assert!(node_values_1d.len() == expected_len);
+    */
     
     // TODO Redundant conditional? (Adam in response - the below is edited to fix this; keeping comment in case error shows)
     //if input.new_build_additions.len() >= 1 {
+    
+    
+    for new_build in &input.new_build_additions {
+        let value_to_add = new_build[0];
+        let index_of_nearest_node = new_build[1];
+        let subpurpose_ix = new_build[2];
+        
+        // add node value to current score if one can be found for this node for the new build's subpurpose
+        let mut loop_ix = 0;
+        let mut found_existing_subpurpose = false;
+        let values_vec_this_node = node_values_2d[index_of_nearest_node as usize].to_vec();
+        for subpurpose_score_pair in values_vec_this_node.iter() {
+            let subpurpose_ix_existing = subpurpose_score_pair[0];
+            if subpurpose_ix == subpurpose_ix_existing {
+                node_values_2d[index_of_nearest_node as usize][loop_ix][1] += value_to_add;
+                found_existing_subpurpose = true;
+            }
+            loop_ix += 1;
+        }
+        // append to node_values_2d if no value for that node's subpurpose
+        if !found_existing_subpurpose {
+            let subpurpose_value_to_add: [i32; 2] = [subpurpose_ix, value_to_add];
+            node_values_2d[index_of_nearest_node as usize].push(subpurpose_value_to_add);
+        }
+    }
+    // the 15 or so lines above replace the 6 lines below
+    /*
     for new_build in &input.new_build_additions {
         let value_to_add = new_build[0];
         let index_of_nearest_node = new_build[1];
@@ -145,6 +174,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         let ix = (index_of_nearest_node * 32) + column_to_change;
         node_values_1d[ix as usize] += value_to_add;
     }
+    */
     //}
     
     let now = Instant::now();
@@ -155,7 +185,7 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
         .map(|i| {
             get_all_scores_and_time_to_target_destinations(
                 &travel_times[*i],
-                &node_values_1d,
+                &node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
                 count_original_nodes,
@@ -198,15 +228,13 @@ fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 
     graph_pt: &Vec<SmallVec<[EdgePT; 4]>>,
     input: &web::Json<UserInputJSON>
 ) -> (
-    Vec<i32>, 
+    Vec<Vec<[i32;2]>>, 
     Vec<(u32, Vec<u32>, Vec<u16>)>
 ) {
-    
-    let node_values_filename = format!("padded_node_values_6am_{}", input.year);
-    
-    let (node_values_1d, travel_times) = rayon::join(
+        
+    let (node_values_2d, travel_times) = rayon::join(
             || {
-                deserialize_bincoded_file(&node_values_filename)
+                read_sparse_node_values_2d_serial(input.year)
             },
             || {
                 get_travel_times_multicore(
@@ -216,7 +244,7 @@ fn parallel_node_values_read_and_floodfill(graph_walk: &Vec<SmallVec<[EdgeWalk; 
                 )
             },
         );
-    (node_values_1d, travel_times)
+    (node_values_2d, travel_times)
 }
 
 
@@ -240,7 +268,7 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
     
     let now = Instant::now();
     
-    let (node_values_1d, travel_times) = parallel_node_values_read_and_floodfill(
+    let (node_values_2d, travel_times) = parallel_node_values_read_and_floodfill(
         &graph_walk,
         &graph_pt,
         &input,
@@ -256,7 +284,7 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
         .map(|i| {
             get_all_scores_and_time_to_target_destinations(
                 &travel_times[*i],
-                &node_values_1d,
+                &node_values_2d,
                 &data.travel_time_relationships_all[time_of_day_ix],
                 &data.subpurpose_purpose_lookup,
                 count_original_nodes,
@@ -275,15 +303,9 @@ async fn main() -> std::io::Result<()> {
     
     let year: i32 = 2022;
     
-    // TO DELETE: testing 2d sparse node serialisation and reading
-    serialise_files::serialise_sparse_node_values_2d_all_years();
-    let sparse_node_values_2d = read_sparse_node_values_2d_serial(year);
-    
     if false {
         serialise_files::serialise_files_all_years();
         serialise_files::serialise_sparse_node_values_2d_all_years();
-    }
-    if false {
         create_graph_walk_len(year); 
     }
     

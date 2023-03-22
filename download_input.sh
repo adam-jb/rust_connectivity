@@ -19,7 +19,7 @@ do
     for x in p1_main_nodes_list_6am_$YEAR.json \
         p2_main_nodes_list_6am_$YEAR.json \
         padded_node_values_6am_$YEAR.json \
-        sparse_node_values_6am_$YEAR_2d.json \
+        sparse_node_values_6am_${YEAR}_2d.json \
         node_values_padding_row_count_6am_$YEAR.json;
     do
         wget https://storage.googleapis.com/hack-bucket-8204707942/$x

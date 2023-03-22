@@ -7,9 +7,9 @@ use std::time::Instant;
 
 use crate::shared::{EdgePT, EdgeWalk};
 
-pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<[i32,2]>> { 
+pub fn read_sparse_node_values_2d_serial(year: i32) -> Vec<Vec<[i32;2]>> { 
     let now = Instant::now();
-    let sparse_node_values_2d: Vec<Vec<[i32,2]>> = deserialize_bincoded_file(&format!("sparse_node_values_6am_{year}_2d"));
+    let sparse_node_values_2d: Vec<Vec<[i32;2]>> = deserialize_bincoded_file(&format!("sparse_node_values_6am_{year}_2d"));
     println!("Serial loading took {:?}", now.elapsed());
     return sparse_node_values_2d
 }

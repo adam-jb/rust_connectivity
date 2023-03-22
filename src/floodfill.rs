@@ -128,7 +128,7 @@ fn get_pt_connections(
 
 pub fn get_all_scores_and_time_to_target_destinations(
     travel_times: &(u32, Vec<u32>, Vec<u16>), // nodeID, destination node IDs, travel times to destinations
-    node_values_1d: &[i32], //&Vec<i32>,
+    node_values_2d: &Vec<Vec<[i32; 2]>>, //&Vec<i32>,
     travel_time_relationships: &[i32], //&Vec<i32>,
     subpurpose_purpose_lookup: &[i8; 32],
     count_original_nodes: u32,
@@ -161,13 +161,25 @@ pub fn get_all_scores_and_time_to_target_destinations(
     let destination_ids = &travel_times.1;
     let destination_travel_times = &travel_times.2;
     
-    for (&current_node, &current_cost) in destination_ids.iter().zip(destination_travel_times) {
-    // replaced 3 lines below with the one above on advice of gpt4
-    //for i in 0..destination_ids.len() {
-        //let current_node = destination_ids[i];
-        //let current_cost = destination_travel_times[i];
+    //for (&current_node, &current_cost) in destination_ids.iter().zip(destination_travel_times) {
+    // replaced 3 lines below with the one above on advice of gpt4. Speed diff seems negligible
+    for i in 0..destination_ids.len() {
+        let current_node = destination_ids[i];
+        let current_cost = destination_travel_times[i];
         
         // if the node id is not a p2 node (ie, above count_nodes_no_value), then it will have an associated value
+        if current_node <= count_original_nodes && current_node >= count_nodes_no_value {
+                        
+            for subpurpose_score_pair in node_values_2d[current_node as usize].iter() {
+                let subpurpose_ix = subpurpose_score_pair[0];
+                let vec_start_pos_this_purpose = (subpurpose_purpose_lookup[subpurpose_ix as usize] as i32) * 3601;
+                let multiplier = travel_time_relationships[(vec_start_pos_this_purpose + current_cost as i32) as usize];
+                scores[subpurpose_ix as usize] += (subpurpose_score_pair[1] as i64) * (multiplier as i64);
+            }
+        }
+        
+        // the above replaces the below chunk
+        /*
         if count_original_nodes >= current_node && current_node >= count_nodes_no_value {
 
             // this replaces get_scores()
@@ -178,6 +190,7 @@ pub fn get_all_scores_and_time_to_target_destinations(
                 scores[i] += (node_values_1d[(start_pos as usize) + i] as i64) * (multiplier as i64);
             }            
         }
+        */
             
         if target_destinations_binary_vec[current_node as usize] {
         //if target_destinations_set.contains(&current_node) {
