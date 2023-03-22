@@ -12,6 +12,25 @@ pub fn serialise_files_all_years() {
     }
 }
 
+pub fn serialise_sparse_node_values_2d_all_years() {
+    for year in 2016..2023 {
+        serialise_sparse_node_values_2d(year);
+    }
+}
+
+fn serialise_sparse_node_values_2d(year: i32) {
+    
+    let inpath = format!("data/sparse_node_values_6am_{}_2d.json", year);
+    let contents = fs_err::read_to_string(&inpath).unwrap();
+    let output: Vec<Vec<[i32,2]>> = serde_json::from_str(&contents).unwrap();
+    println!("Read from {}", inpath);
+
+    let outpath = format!("serialised_data/sparse_node_values_6am_{}_2d.bin", year);
+    let file = BufWriter::new(File::create(&outpath).unwrap());
+    bincode::serialize_into(file, &output).unwrap();
+    println!("Serialised to {}", outpath);
+}
+
 pub fn serialise_files(year: i32) {
     let now = Instant::now();
 
