@@ -11,6 +11,7 @@ use read_files::{
     read_small_files_serial,
     deserialize_bincoded_file,
     create_graph_walk_len,
+    read_sparse_node_values_2d_serial,
 };
 
 mod floodfill;
@@ -273,9 +274,14 @@ fn floodfill_pt_no_changes(data: web::Data<AppState>, input: web::Json<UserInput
 async fn main() -> std::io::Result<()> {
     
     let year: i32 = 2022;
-
+    
+    // TO DELETE: testing 2d sparse node serialisation and reading
+    serialise_files::serialise_sparse_node_values_2d_all_years();
+    let sparse_node_values_2d = read_sparse_node_values_2d_serial(year);
+    
     if false {
         serialise_files::serialise_files_all_years();
+        serialise_files::serialise_sparse_node_values_2d_all_years();
     }
     if false {
         create_graph_walk_len(year); 
