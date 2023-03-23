@@ -35,4 +35,5 @@ pub struct UserInputJSON {
     pub new_build_additions: Vec<Vec<i32>>,
     pub target_destinations: Vec<u32>,
     pub max_travel_time: u16,
+    pub return_all_destinations: bool,
 }
