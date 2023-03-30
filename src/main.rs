@@ -137,6 +137,13 @@ async fn floodfill_pt(data: web::Data<AppState>, input: web::Json<UserInputJSON>
     let expected_len = graph_walk.len() * 32;
     assert!(node_values_1d.len() == expected_len);
     */
+    // the lines below do the equivalent to the above, with sparse node values: pushing empty vectors
+    for _i in 0..input.graph_walk_additions.len() {
+        let empty_vec: Vec<[i32; 2]> = Vec::new();
+        node_values_2d.push(empty_vec);
+    }
+    
+    
     
     // TODO Redundant conditional? (Adam in response - the below is edited to fix this; keeping comment in case error shows)
     //if input.new_build_additions.len() >= 1 {
