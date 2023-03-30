@@ -69,8 +69,8 @@ docker push adambricknell/connectivity_rust
 
 To deploy with Cloud Run do the below, then use Cloud Run UI in GCP to deploy
 ```
-docker build --progress=plain -t rust_connectivity:latest .
-docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
+docker build --progress=plain -t rust_connectivity:latest . && \
+docker tag rust_connectivity:latest gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest && \
 docker push gcr.io/dft-dst-prt-connectivitymetric/adambricknell/connectivity_rust:latest
 ```
 
