@@ -2,3 +2,4 @@ data/*
 target/*
 index.*
 serialised_data/.ipynb_checkpoints/*
+serialised_data/padded_node_values_*
