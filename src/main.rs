@@ -311,7 +311,7 @@ async fn main() -> std::io::Result<()> {
     let year: i32 = 2022;
     
     // make this true on initial run; false otherwise
-    if true {
+    if false {
         serialise_files::serialise_files_all_years();
         serialise_files::serialise_sparse_node_values_2d_all_years();
         create_graph_walk_len(year); 
