@@ -44,6 +44,15 @@ wget --post-file="example_payload_1000_start_nodes_2019.json" \
   'http://0.0.0.0:7328/floodfill_pt/'
 ```
 
+
+Run PT algorithm on ~3000 start nodes using 2022 network, with a new route and building:
+```
+wget --post-file="example_payload_2022_new_route_and_build.json" \
+  --header='Content-Type:application/json' \
+  'http://0.0.0.0:7328/floodfill_pt/'
+```
+
+
 # Deploying with Docker
 
 To make and run docker image. For networks from 2016 to 2022 the image is 15gb.
