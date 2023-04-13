@@ -72,7 +72,7 @@ pub fn get_travel_times(
             }
         }
 
-        // if node has a timetable associated with it: the first value in the first 'edge'
+        /*/ if node has a timetable associated with it: the first value in the first 'edge'
         // will be 1 if it does, and 0 if it doesn't
         if graph_walk[(current.value.0 as usize)][0].cost == Cost(1) {
             get_pt_connections(
@@ -84,7 +84,7 @@ pub fn get_travel_times(
                 &current.value,
             );
         }
-
+        */
     }
     return (
         start.0,
